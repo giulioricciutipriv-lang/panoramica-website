@@ -27,13 +27,50 @@ const PHASES = {
   finish:     { order: 7, minTurns: 0, maxTurns: 0, next: null }
 };
 
-// Topics to cover per phase (for tracking completeness)
+// Topics mapped to profile fields — if the fields are filled, the topic is COVERED
+// This is the SINGLE SOURCE OF TRUTH for what's been asked
+const TOPIC_TO_FIELDS = {
+  business_model:       ['businessModel'],
+  stage_revenue:        ['stage', 'revenue'],
+  team_composition:     ['teamSize'],
+  funding:              ['funding'],
+  icp_definition:       ['icpTitle'],
+  sales_motion_channels:['salesMotion'],
+  key_metrics_cac:      ['avgDealSize'],
+  sales_process:        ['salesProcess'],
+  who_closes:           ['whoCloses'],
+  bottlenecks_churn:    ['mainBottleneck'],
+  tools_stack:          ['crm', 'tools'],
+  present_findings:     ['diagnosedProblems'],
+  validate_priority:    ['userPriority']
+};
+
 const PHASE_TOPICS = {
-  company: ['business_model', 'stage_revenue', 'team_composition', 'funding'],
-  gtm: ['icp_definition', 'sales_motion_channels', 'key_metrics_cac'],
-  sales: ['sales_process', 'who_closes', 'bottlenecks_churn', 'tools_stack'],
+  company:   ['business_model', 'stage_revenue', 'team_composition', 'funding'],
+  gtm:       ['icp_definition', 'sales_motion_channels', 'key_metrics_cac'],
+  sales:     ['sales_process', 'who_closes', 'bottlenecks_churn', 'tools_stack'],
   diagnosis: ['present_findings', 'validate_priority']
 };
+
+// Compute covered topics from profile data (not from LLM reports)
+function computeCoveredTopics(profile) {
+  const covered = [];
+  for (const [topic, fields] of Object.entries(TOPIC_TO_FIELDS)) {
+    const isFilled = fields.some(f => {
+      const v = profile[f];
+      return Array.isArray(v) ? v.length > 0 : (v && v.trim() !== '');
+    });
+    if (isFilled) covered.push(topic);
+  }
+  return covered;
+}
+
+// Get the NEXT uncovered topic for a phase
+function getNextTopic(phase, profile) {
+  const topics = PHASE_TOPICS[phase] || [];
+  const covered = computeCoveredTopics(profile);
+  return topics.find(t => !covered.includes(t)) || null;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 2: PHASE-SPECIFIC PROMPTS (the core intelligence)
@@ -41,8 +78,14 @@ const PHASE_TOPICS = {
 
 function getPhasePrompt(phase, session) {
   const p = session.profile;
-  const covered = session.topicsCovered || [];
+  const covered = computeCoveredTopics(p);
   const phaseTurns = session.phaseTurnCount || 0;
+  const nextTopic = getNextTopic(phase, p);
+  
+  // Helper: show topic status
+  const topicStatus = (topic, label) => covered.includes(topic) 
+    ? `  ✅ ${label} — ALREADY ANSWERED (do NOT ask again)`
+    : `  ❌ ${label} — NOT YET ASKED → ask about this`;
   
   const prompts = {
     // ─────────────────────────────────────────────────────────────────────────
@@ -51,187 +94,199 @@ YOU ARE IN THE WELCOME PHASE.
 
 You just received scraped data about this company. Your job:
 1. Greet them confidently
-2. Show you've done homework — reference 3-4 SPECIFIC things from the scraped data (headlines, pricing, features, copy from their website)
-3. Make 3 assumptions about their business based on what you see
-4. Ask: "Did I get this right? What should I correct?"
+2. Show you've done homework — reference 3-4 SPECIFIC things from the scraped data (actual headlines, prices, features, quotes from website)
+3. Make 3 bold assumptions about their business
+4. Ask: "Ho capito bene? Cosa devo correggere?" / "Did I get this right?"
 
 YOUR OPTIONS must be:
 - One for "mostly correct"
-- One for "partially correct, let me clarify"  
+- One for "partially correct, let me clarify"
 - One for "quite different, let me explain"
 
 SCRAPED DATA:
-${session.scrapedSummary || 'No data available'}
+${session.scrapedSummary || 'No scraped data available — ask the user to describe their business.'}
 
-TONE: Confident, specific, bold. Like a consultant who already knows their stuff.
-MINIMUM: 6 sentences. Quote actual website content.
+TONE: Confident, specific, like a consultant who already knows their stuff.
+MINIMUM: 6 sentences. Quote actual content from the website.
 `,
     // ─────────────────────────────────────────────────────────────────────────
     company: `
-YOU ARE IN THE COMPANY DISCOVERY PHASE.
-Questions asked in this phase: ${phaseTurns}
-Minimum questions before moving on: ${PHASES.company.minTurns}
+YOU ARE IN THE COMPANY ANALYSIS PHASE. Turn ${phaseTurns + 1} in this phase.
 
-TOPICS STILL NEEDED (ask about ONE per turn):
-${!covered.includes('business_model') ? '- BUSINESS MODEL: SaaS/services/marketplace? B2B/B2C? Subscription/usage/one-time?' : '✅ business_model covered'}
-${!covered.includes('stage_revenue') ? '- STAGE & REVENUE: Pre-revenue/early/growing/scaling? MRR/ARR? Growth rate?' : '✅ stage_revenue covered'}
-${!covered.includes('team_composition') ? '- TEAM: How many? Tech/sales/marketing split? Key missing roles?' : '✅ team_composition covered'}
-${!covered.includes('funding') ? '- FUNDING: Bootstrapped/funded? Round? Runway? Profitable?' : '✅ funding covered'}
+TOPIC STATUS — check marks mean DO NOT ASK AGAIN:
+${topicStatus('business_model', 'Business Model (SaaS/services/marketplace, B2B/B2C, pricing type)')}
+${topicStatus('stage_revenue', 'Stage & Revenue (pre-revenue/early/growth/scaling, MRR, growth rate)')}
+${topicStatus('team_composition', 'Team (size, roles, tech/sales/marketing split, missing roles)')}
+${topicStatus('funding', 'Funding (bootstrapped/funded, round, runway, profitable?)')}
 
-YOUR APPROACH FOR THIS TURN:
-1. Acknowledge what they just said (2-3 sentences, be SPECIFIC, reference their words)
-2. Share a relevant insight or benchmark: "Companies like yours typically..." or "At your stage, the benchmark is..."
-3. Ask ONE clear question about the NEXT uncovered topic
+${nextTopic ? `
+YOUR TASK: Ask about "${nextTopic.replace(/_/g, ' ').toUpperCase()}"
+` : `
+ALL TOPICS COVERED in this phase. Summarize what you know and transition.
+Set ready_to_advance: true
+`}
+
+WHAT THE USER JUST TOLD YOU — acknowledge it first:
+${p.businessModel ? `Business model: ${p.businessModel}` : ''}
+${p.stage ? `Stage: ${p.stage}` : ''}
+${p.revenue ? `Revenue: ${p.revenue}` : ''}
+${p.teamSize ? `Team: ${p.teamSize} ${p.teamRoles || ''}` : ''}
+${p.funding ? `Funding: ${p.funding}` : ''}
+
+YOUR APPROACH:
+1. Acknowledge what they said (2-3 sentences, be SPECIFIC, use their exact words)
+2. Share a relevant insight or benchmark (e.g., "At your revenue, companies typically have X people")
+3. Ask ONE clear question about the next ❌ topic
 4. Generate 4-5 options that are SPECIFIC ANSWERS to your question
 
-EXAMPLES OF GOOD OPTIONS for business model:
-- "B2B SaaS with monthly/annual subscription"
-- "Professional services / consulting"  
-- "Marketplace connecting buyers and sellers"
-- "Hybrid: SaaS core + services layer"
-- "Different model — let me explain"
+IMPORTANT: Options must be answers to YOUR question. If you ask about revenue, options should be revenue ranges. If you ask about team, options should be team sizes.
 
-IMPORTANT: Your options must be POSSIBLE ANSWERS to your question. Not generic actions.
-
-Include benchmarks from: SaaStr, OpenView Partners, First Round Capital, a16z.
-MINIMUM: 5 sentences per response.
+MINIMUM: 5 sentences. Include a benchmark or reference.
 `,
     // ─────────────────────────────────────────────────────────────────────────
     gtm: `
-YOU ARE IN THE GO-TO-MARKET DISCOVERY PHASE.
-Questions asked in this phase: ${phaseTurns}
+YOU ARE IN THE GO-TO-MARKET ANALYSIS PHASE. Turn ${phaseTurns + 1}.
 
-TRANSITION: If this is the first question in GTM, start with: "Let's map your Go-to-Market strategy."
-Briefly summarize what you learned about the company (2 sentences with real data).
+${phaseTurns === 0 ? `TRANSITION: Start with "Passiamo alla tua strategia Go-to-Market" / "Let's map your Go-to-Market."
+Summarize company findings: "${p.companyName || 'Your company'} is a ${p.businessModel || '?'} at ${p.stage || '?'} stage with ${p.teamSize || '?'} people, ${p.funding || '?'}."` : ''}
 
-TOPICS STILL NEEDED (ask about ONE per turn):
-${!covered.includes('icp_definition') ? '- ICP: Who is the ideal buyer? Job title? Company size? Industry? Main pain point?' : '✅ icp_definition covered'}
-${!covered.includes('sales_motion_channels') ? '- SALES MOTION & CHANNELS: Inbound/outbound/PLG/mix? Which channels? Best channel?' : '✅ sales_motion_channels covered'}
-${!covered.includes('key_metrics_cac') ? '- KEY METRICS: Average deal size (ACV)? Sales cycle length? CAC? LTV? Conversion rate?' : '✅ key_metrics_cac covered'}
+TOPIC STATUS:
+${topicStatus('icp_definition', 'ICP — ideal buyer persona, company size, industry, pain point')}
+${topicStatus('sales_motion_channels', 'Sales motion & channels — inbound/outbound/PLG, which channels, best performer')}
+${topicStatus('key_metrics_cac', 'Key metrics — ACV, sales cycle, CAC, LTV, conversion rates')}
+
+${nextTopic ? `YOUR TASK: Ask about "${nextTopic.replace(/_/g, ' ').toUpperCase()}"` : 'ALL TOPICS COVERED. Set ready_to_advance: true'}
+
+KNOWN DATA TO REFERENCE:
+${p.icpTitle ? `ICP: ${p.icpTitle} at ${p.icpCompanySize || '?'} companies` : ''}
+${p.salesMotion ? `Motion: ${p.salesMotion}, channels: ${p.channels || '?'}` : ''}
+${p.avgDealSize ? `ACV: ${p.avgDealSize}, cycle: ${p.salesCycle || '?'}` : ''}
 
 YOUR APPROACH:
-1. Acknowledge previous answer with INSIGHT (not just "thanks")
-2. Connect to their business: "Selling ${p.businessModel || 'your product'} to ${p.icpTitle || 'your ICP'}..."
+1. Acknowledge previous answer with a business INSIGHT (not "great, thanks")
+2. Connect to their situation: "With a ${p.businessModel || 'SaaS'} selling to ${p.icpTitle || 'your audience'}..."
 3. Include benchmark: "For B2B ${p.businessModel || 'SaaS'} at ${p.stage || 'your stage'}, typical X is Y"
-4. Ask ONE focused question
-5. Generate 4-6 options that are DIRECT ANSWERS to your question
+4. Ask ONE focused question about the next ❌ topic
+5. Generate 4-6 options that DIRECTLY answer your question
 
-Example good options for ICP:
-- "SMB owners and small team leads (1-50 employees)"
-- "Mid-market directors and VPs (50-500 employees)"
-- "Enterprise C-suite (500+ employees)"
-- "Technical individual contributors (developers, engineers)"
-- "Not clearly defined yet — we sell to anyone who buys"
-
-MINIMUM: 5 sentences. Include specific tools, frameworks, or resources where relevant.
+MINIMUM: 5 sentences.
 `,
     // ─────────────────────────────────────────────────────────────────────────
     sales: `
-YOU ARE IN THE SALES ENGINE DISCOVERY PHASE.
-Questions asked in this phase: ${phaseTurns}
+YOU ARE IN THE SALES ENGINE ANALYSIS PHASE. Turn ${phaseTurns + 1}.
 
-TRANSITION: If first question, start with: "Now let's analyze your Sales Engine."
-Summarize GTM findings in 2 sentences.
+${phaseTurns === 0 ? `TRANSITION: Start with "Analizziamo il tuo motore di vendita" / "Let's analyze your Sales Engine."
+Summarize: "You're a ${p.businessModel || '?'} selling to ${p.icpTitle || '?'} via ${p.salesMotion || '?'}, with ACV of ${p.avgDealSize || '?'}."` : ''}
 
-TOPICS STILL NEEDED:
-${!covered.includes('sales_process') ? '- SALES PROCESS: What happens first contact → close? How many stages? Documented? CRM?' : '✅ sales_process covered'}
-${!covered.includes('who_closes') ? '- WHO CLOSES: Founder vs team? What percentage? Can deals close without founder?' : '✅ who_closes covered'}
-${!covered.includes('bottlenecks_churn') ? '- BOTTLENECKS: Where do deals die? Win rate? Top objections? Churn rate?' : '✅ bottlenecks_churn covered'}
-${!covered.includes('tools_stack') ? '- TOOLS: CRM? Automation? Analytics? Pipeline tracking? What data do you trust?' : '✅ tools_stack covered'}
+TOPIC STATUS:
+${topicStatus('sales_process', 'Sales process — steps from first contact to close, documented?, CRM used')}
+${topicStatus('who_closes', 'Who closes — founder vs team, percentage, can deals close without founder?')}
+${topicStatus('bottlenecks_churn', 'Bottlenecks — where deals die, win rate, objections, churn rate')}
+${topicStatus('tools_stack', 'Tech stack — CRM, automation, analytics, pipeline tracking')}
+
+${nextTopic ? `YOUR TASK: Ask about "${nextTopic.replace(/_/g, ' ').toUpperCase()}"` : 'ALL TOPICS COVERED. Set ready_to_advance: true'}
+
+KNOWN SALES DATA:
+${p.salesProcess ? `Process: ${p.salesProcess}` : ''}
+${p.whoCloses ? `Closes: ${p.whoCloses}` : ''}
+${p.mainBottleneck ? `Bottleneck: ${p.mainBottleneck}` : ''}
+${p.crm || p.tools ? `Tools: ${p.crm || p.tools}` : ''}
+
+HYPOTHESES TO SHARE (pick the most relevant):
+${p.whoCloses && p.whoCloses.toLowerCase().includes('founder') ? '- "FOUNDER-LED TRAP: If you close >60% of deals, scaling is mathematically impossible without building a sales playbook first."' : ''}
+${!p.salesProcess || p.salesProcess.toLowerCase().includes('no') ? '- "Without a documented process, each new hire starts from zero. You\'re not scaling — you\'re duplicating chaos."' : ''}
+${!p.winRate ? '- "Not tracking win rate = flying blind. You can\'t optimize what you don\'t measure."' : ''}
 
 YOUR APPROACH:
-1. Acknowledge with an insight about their specific situation
-2. Make a HYPOTHESIS: "Based on [what they told you], I suspect [X] because [Y]"
-3. Ask ONE focused question
-4. Generate options that are SPECIFIC to their situation
+1. Acknowledge with insight (reference their specific situation)
+2. Make a bold hypothesis if relevant
+3. Ask ONE focused question about the next ❌ topic
+4. Generate situational options
 
-KEY INSIGHT TO SHARE:
-- If founder-led sales detected: "The Founder-Led Sales Trap: if the founder closes >60% of deals, you have a scaling ceiling"
-- If no process: "Without a documented process, every new salesperson is starting from zero"
-- If missing metrics: "If you can't measure it, you can't improve it — and your investors can't model it"
-
-MINIMUM: 5 sentences. Be provocative but respectful.
+MINIMUM: 5 sentences. Be provocative.
 `,
     // ─────────────────────────────────────────────────────────────────────────
     diagnosis: `
-YOU ARE IN THE DIAGNOSIS PHASE.
-${phaseTurns === 0 ? 'THIS IS YOUR FIRST DIAGNOSIS TURN — PRESENT YOUR FINDINGS.' : 'The user responded to your diagnosis — ADJUST based on their feedback.'}
+YOU ARE IN THE DIAGNOSIS PHASE. Turn ${phaseTurns + 1}.
 
 ${phaseTurns === 0 ? `
-PRESENT YOUR DIAGNOSIS:
-1. Start with: "Based on everything you've shared, here is my diagnosis:"
-2. Identify TOP 3 revenue problems, ranked by impact
-3. For EACH problem:
-   - NAME it clearly (specific, not vague)
-   - ROOT CAUSE: WHY this is happening
-   - REVENUE IMPACT: Quantify or estimate
-   - BENCHMARK: What "good" looks like
-4. State your CORE HYPOTHESIS in one sentence
-5. End with: "Does this diagnosis resonate?"
+THIS IS YOUR DIAGNOSIS — PRESENT YOUR FINDINGS.
+Do NOT ask discovery questions. You have enough information.
 
-Use ALL the data you've collected. Be SPECIFIC — reference actual numbers they gave you.
-This should be your LONGEST response. MINIMUM 10 sentences.
+FULL DATA COLLECTED:
+- Company: ${p.companyName}, ${p.businessModel}, ${p.stage}, ${p.revenue}
+- Team: ${p.teamSize} (${p.teamRoles || '?'}), ${p.funding}
+- ICP: ${p.icpTitle} at ${p.icpCompanySize || '?'} in ${p.icpIndustry || '?'}
+- Motion: ${p.salesMotion}, channels: ${p.channels}, ACV: ${p.avgDealSize}
+- Process: ${p.salesProcess}, closes: ${p.whoCloses}
+- Bottleneck: ${p.mainBottleneck}, churn: ${p.churnRate || '?'}
+- Tools: ${p.crm || p.tools || '?'}
 
-OPTIONS should be:
-- "This resonates strongly"
-- "Mostly right, but I'd adjust priorities"
-- "You missed an important issue"
-- "Right problems, but wrong root causes"
+PRESENT:
+1. "Ecco la mia diagnosi" / "Here is my diagnosis"
+2. TOP 3 problems ranked by revenue impact. For EACH:
+   - Problem name (specific)
+   - Root cause (WHY)
+   - Revenue impact (quantify)
+   - Benchmark (what "good" looks like)
+3. Core hypothesis in ONE sentence
+4. Ask: "Questa diagnosi risuona?" / "Does this resonate?"
+
+OPTIONS: resonates / mostly right / missed something / wrong causes
+This is your LONGEST message. MINIMUM 10 sentences. Use their real data.
 ` : `
-VALIDATE/ADJUST YOUR DIAGNOSIS:
-The user just responded to your diagnosis. Based on what they said:
-- If agreed: Confirm and ask about their #1 priority for the next 90 days
-- If disagreed: Ask specifically what they'd change, then ADJUST
-- If they added info: Incorporate and present updated view
-
-Ask: "Which problem is most critical to fix first? And what have you already tried?"
-
-OPTIONS should reflect priority choices and let them correct things.
+User responded to your diagnosis. ADJUST based on what they said.
+If agreed → ask about #1 priority for next 90 days and what they already tried
+If disagreed → ask what to change, present adjusted view
+OPTIONS: priority choices + "let me correct something"
 MINIMUM: 5 sentences.
 `}
 `,
     // ─────────────────────────────────────────────────────────────────────────
     pre_finish: `
-YOU ARE IN THE PRE-FINISH PHASE — Present final summary before report generation.
+FINAL SUMMARY — present everything before report generation.
+
+DATA:
+- Company: ${p.companyName}, ${p.businessModel}, ${p.stage}, ${p.revenue}
+- Team: ${p.teamSize}, ${p.funding}
+- ICP: ${p.icpTitle}, Motion: ${p.salesMotion}
+- Top problems: ${(p.diagnosedProblems||[]).join('; ') || '?'}
+- Priority: ${p.userPriority || '?'}
 
 STRUCTURE:
-1. "Here's the complete picture:"
-2. Company snapshot (3 sentences with actual data: ${p.companyName}, ${p.businessModel}, ${p.stage}, ${p.revenue})
-3. The 3 diagnosed problems (1 sentence each, specific)
-4. Priority order based on user input: "${p.userPriority || 'not yet set'}"
-5. Preview: "Your Strategic Growth Plan will include: executive summary, diagnostic findings, 90-day roadmap with weekly actions, key metrics, tool recommendations."
-6. "Ready to generate?"
+1. "Ecco il quadro completo:" / "Here's the complete picture:"
+2. Company snapshot (3 sentences, real data)
+3. The 3 problems (1 sentence each, specific)
+4. Priority order
+5. Preview: "Il tuo piano includerà: executive summary, diagnosi, roadmap 90 giorni, metriche, strumenti."
+6. "Sei pronto a generare?" / "Ready to generate?"
 
-OPTIONS MUST include:
-- "📥 Generate Strategic Growth Plan" (key: generate_report)
-- "Wait, I want to add important context" (key: add_context)
-- "I want to adjust a finding" (key: add_context)
+YOU MUST include these options:
+- { "key": "generate_report", "label": "📥 Genera il Growth Plan" } (or English equivalent)
+- { "key": "add_context", "label": "Aspetta, voglio aggiungere qualcosa" } (or English equivalent)
+- { "key": "adjust_finding", "label": "Voglio correggere un punto" }
 
-MINIMUM: 8 sentences. Make it feel like a premium deliverable is coming.
+MINIMUM: 8 sentences.
 `,
     // ─────────────────────────────────────────────────────────────────────────
     add_context: `
-YOU ARE IN THE ADD CONTEXT PHASE — The user wants to add or correct information.
+The user wants to ADD or CORRECT something.
 
 ${phaseTurns === 0 ? `
-FIRST TURN: Ask what they want to add/correct.
-Say: "Of course! What would you like to add or correct?"
-List areas they could address: team, market, product, challenges, diagnosis corrections.
-Do NOT mention the report. Do NOT show generate button.
+Ask what they want to add/correct. Be welcoming.
+"Certo! Cosa vuoi aggiungere o correggere?" / "Of course! What would you like to add?"
+Do NOT mention the report yet. Do NOT show generate button.
+OPTIONS: areas to add context (team, market, product, challenges, correct diagnosis)
 ` : `
-SUBSEQUENT TURN: They just shared new context.
-1. Acknowledge SPECIFICALLY what they said (quote them)
-2. Explain how this changes your understanding
-3. Ask if there's anything else
-4. If they're done, show updated assessment + generate option
+They just shared context: "${session.conversationSummary.slice(-1)[0] || ''}"
+1. Acknowledge SPECIFICALLY
+2. Explain how it changes your view
+3. Ask if there's more, or generate
 
-If they indicate they're done adding, present a brief updated summary and offer to generate.
+Include these options:
+- "I have more to add"
+- { "key": "generate_report", "label": "📥 Generate Updated Plan" }
 `}
-
-OPTIONS should include:
-- Specific areas to add context about
-- "I'm done — update the analysis" (only after they've actually added something)
-${phaseTurns > 0 ? '- "📥 Generate Updated Growth Plan" (key: generate_report)' : ''}
 `
   };
   
@@ -247,7 +302,6 @@ function createSession() {
     currentPhase: 'welcome',
     turnCount: 0,
     phaseTurnCount: 0,
-    topicsCovered: [],
     profile: {
       companyName:'', website:'', industry:'', businessModel:'', stage:'', revenue:'',
       revenueGrowth:'', teamSize:'', teamRoles:'', funding:'',
@@ -262,19 +316,20 @@ function createSession() {
       userPriority:'', pastAttempts:'', constraints:'', additionalContext:''
     },
     scrapedSummary: '',
-    conversationSummary: [] // "Turn 1: AI presented website analysis. User confirmed mostly correct."
+    conversationSummary: []
   };
 }
 
 function buildFullProfile(session) {
   const p = session.profile;
-  const f = (label, val) => `  ${label}: ${val || '❓ NOT YET KNOWN'}`;
+  const covered = computeCoveredTopics(p);
+  const f = (label, val) => {
+    const v = Array.isArray(val) ? (val.length > 0 ? val.join('; ') : '') : (val || '');
+    return v ? `  ✅ ${label}: ${v}` : `  ❓ ${label}: NOT YET KNOWN`;
+  };
   
   return `
-════════════════════════════════════════
-COMPLETE BUSINESS PROFILE
-(Everything learned so far)
-════════════════════════════════════════
+═══ BUSINESS PROFILE (✅ = known, ❓ = still needed) ═══
 
 COMPANY:
 ${f('Name', p.companyName)}
@@ -283,59 +338,41 @@ ${f('Industry', p.industry)}
 ${f('Business Model', p.businessModel)}
 ${f('Stage', p.stage)}
 ${f('Revenue', p.revenue)}
-${f('Growth Rate', p.revenueGrowth)}
 ${f('Team Size', p.teamSize)}
 ${f('Team Roles', p.teamRoles)}
 ${f('Funding', p.funding)}
 
 PRODUCT:
 ${f('Description', p.productDescription)}
-${f('Pricing Model', p.pricingModel)}
-${f('Pricing Range', p.pricingRange)}
+${f('Pricing', `${p.pricingModel} ${p.pricingRange}`.trim())}
 
 GO-TO-MARKET:
 ${f('ICP (Buyer)', p.icpTitle)}
-${f('ICP Company Size', p.icpCompanySize)}
-${f('ICP Industry', p.icpIndustry)}
+${f('ICP Company', p.icpCompanySize)}
 ${f('ICP Pain Points', p.icpPainPoints)}
 ${f('Sales Motion', p.salesMotion)}
 ${f('Channels', p.channels)}
-${f('Best Channel', p.bestChannel)}
 ${f('Avg Deal Size', p.avgDealSize)}
 ${f('Sales Cycle', p.salesCycle)}
 ${f('CAC', p.cac)}
-${f('LTV', p.ltv)}
 
 SALES ENGINE:
 ${f('Process', p.salesProcess)}
-${f('Documented', p.processDocumented)}
 ${f('Who Closes', p.whoCloses)}
-${f('Founder Role', p.founderInvolvement)}
-${f('Win Rate', p.winRate)}
 ${f('Bottleneck', p.mainBottleneck)}
-${f('Lost Deals', p.lostDealReasons)}
 ${f('Churn Rate', p.churnRate)}
 ${f('CRM/Tools', p.crm || p.tools)}
 
 DIAGNOSIS:
-${f('Problems', (p.diagnosedProblems||[]).join('; '))}
-${f('Root Causes', (p.rootCauses||[]).join('; '))}
+${f('Problems', p.diagnosedProblems)}
+${f('Root Causes', p.rootCauses)}
 ${f('User Priority', p.userPriority)}
-${f('Past Attempts', p.pastAttempts)}
 ${f('Additional Context', p.additionalContext)}
 
-════════════════════════════════════════
-CONVERSATION HISTORY
-(Summary of every turn)
-════════════════════════════════════════
-${session.conversationSummary.length > 0 ? session.conversationSummary.join('\n') : 'No conversation yet.'}
-
-════════════════════════════════════════
-TOPICS COVERED: ${session.topicsCovered.join(', ') || 'none yet'}
-CURRENT PHASE: ${session.currentPhase}
-PHASE TURN: ${session.phaseTurnCount} / min ${PHASES[session.currentPhase]?.minTurns || '?'}
-TOTAL TURNS: ${session.turnCount}
-════════════════════════════════════════`;
+═══ TOPICS COVERED: ${covered.join(', ') || 'none yet'} ═══
+═══ CONVERSATION (last 10 of ${session.conversationSummary.length} turns) ═══
+${session.conversationSummary.length > 0 ? session.conversationSummary.slice(-10).join('\n') : 'No history.'}
+═══ PHASE: ${session.currentPhase} | PHASE TURN: ${session.phaseTurnCount} | TOTAL: ${session.turnCount} ═══`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -581,16 +618,18 @@ OUTPUT FORMAT — You MUST respond with this exact JSON structure:
 
 CRITICAL RULES:
 1. Your "options" MUST be specific answers to YOUR question, not generic buttons
-2. Your "message" MUST end with a clear question (except in diagnosis phase where you present findings)
+2. Your "message" MUST end with a clear question (except in diagnosis/pre_finish phases)
 3. "profile_updates" — extract ANY info from the user's input and map to the correct profile field
-4. "topic_covered" — if you asked about and got a clear answer on a topic, set this to the topic name
-5. "ready_to_advance" — set to true ONLY if all topics for this phase are covered
-6. Always acknowledge what the user said BEFORE asking your next question
-7. NEVER repeat a question about a topic already marked as covered
-8. Include at least one benchmark, example, or framework reference per response
+4. "topic_covered" — set to the topic name you just got answers for (or null)
+5. "ready_to_advance" — set true ONLY if all ❌ topics are now covered
+6. ALWAYS acknowledge what the user said BEFORE asking your next question
+7. ABSOLUTELY DO NOT ask about any topic marked ✅ in the profile or phase instructions
+8. Look at the ❌ topics in the phase instructions — ask about the FIRST uncovered one
+9. Include at least one benchmark, example, or framework reference per response
+10. If the user writes in Italian, respond ENTIRELY in Italian. If English, respond in English.
 `;
 
-    console.log(`[v9] Turn ${session.turnCount} | Phase: ${session.currentPhase} | PhaseTurn: ${session.phaseTurnCount} | Topics: ${session.topicsCovered.join(',')}`);
+    console.log(`[v9] Turn ${session.turnCount} | Phase: ${session.currentPhase} | PhaseTurn: ${session.phaseTurnCount} | Topics: ${computeCoveredTopics(session.profile).join(',')}`);
 
     // ═════════════════════════════════════════════════════════════
     // CALL LLM
@@ -619,7 +658,7 @@ CRITICAL RULES:
     // UPDATE SESSION
     // ═════════════════════════════════════════════════════════════
     
-    // Update profile
+    // Update profile from LLM extractions
     if (llmResponse.profile_updates && typeof llmResponse.profile_updates === 'object') {
       for (const [key, value] of Object.entries(llmResponse.profile_updates)) {
         if (!value || !session.profile.hasOwnProperty(key)) continue;
@@ -632,31 +671,33 @@ CRITICAL RULES:
       }
     }
     
-    // Track topic
-    if (llmResponse.topic_covered && !session.topicsCovered.includes(llmResponse.topic_covered)) {
-      session.topicsCovered.push(llmResponse.topic_covered);
-    }
-    
     // Log AI turn
+    const coveredNow = computeCoveredTopics(session.profile);
     session.conversationSummary.push(
-      `Turn ${session.turnCount}: [${session.currentPhase}] AI asked about ${llmResponse.topic_covered || session.currentPhase}. ${llmResponse.ready_to_advance ? '→ Ready to advance.' : ''}`
+      `Turn ${session.turnCount}: [${session.currentPhase}] AI response. Covered topics: ${coveredNow.join(', ')}`
     );
     
     session.phaseTurnCount++;
 
     // ═════════════════════════════════════════════════════════════
-    // CHECK PHASE ADVANCE (after LLM call)
+    // CHECK PHASE ADVANCE (profile-based)
     // ═════════════════════════════════════════════════════════════
     
-    const currentPhase = PHASES[session.currentPhase];
+    const currentPhaseConfig = PHASES[session.currentPhase];
     
-    if (currentPhase && currentPhase.next) {
-      const minMet = session.phaseTurnCount >= currentPhase.minTurns;
-      const maxHit = session.phaseTurnCount >= currentPhase.maxTurns;
+    if (currentPhaseConfig && currentPhaseConfig.next) {
+      const minMet = session.phaseTurnCount >= currentPhaseConfig.minTurns;
+      const maxHit = session.phaseTurnCount >= currentPhaseConfig.maxTurns;
+      
+      // Check if all topics for current phase are covered (profile-based)
+      const phaseTopics = PHASE_TOPICS[session.currentPhase] || [];
+      const allTopicsCovered = phaseTopics.length > 0 && phaseTopics.every(t => coveredNow.includes(t));
+      
       const llmReady = llmResponse.ready_to_advance === true;
       
-      if (maxHit || (minMet && llmReady)) {
-        session.currentPhase = currentPhase.next;
+      if (maxHit || (minMet && (allTopicsCovered || llmReady))) {
+        console.log(`[v9] Phase advance: ${session.currentPhase} → ${currentPhaseConfig.next} (min:${minMet} max:${maxHit} topics:${allTopicsCovered} llm:${llmReady})`);
+        session.currentPhase = currentPhaseConfig.next;
         session.phaseTurnCount = 0;
       }
     }
@@ -680,7 +721,7 @@ CRITICAL RULES:
     options = options.filter(o => o && o.key && o.label).slice(0, 6);
     
     // If pre_finish, ensure generate_report option exists
-    if (session.currentPhase === 'pre_finish' || (currentPhase?.next === 'pre_finish' && session.phaseTurnCount === 0)) {
+    if (session.currentPhase === 'pre_finish' || (currentPhaseConfig?.next === 'pre_finish' && session.phaseTurnCount === 0)) {
       if (!options.some(o => o.key === 'generate_report')) {
         options.unshift({ key: 'generate_report', label: '📥 Generate Strategic Growth Plan' });
       }
