@@ -202,7 +202,7 @@ RISPONDI IN JSON:
     messages.push({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: String(content).slice(0, 1500) }] });
   }
 
-  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`, {
+  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${geminiKey}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ contents: messages, generationConfig: { temperature: 0.8, responseMimeType: "application/json", maxOutputTokens: 2500 } })
   });
