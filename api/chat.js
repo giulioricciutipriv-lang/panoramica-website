@@ -25,109 +25,109 @@ function createSession() {
 function buildContext(session) {
   const p = session.profile;
   return `
-═══ PROFILO BUSINESS ═══
-Azienda: ${p.companyName || '?'} | Website: ${p.website || '?'}
-Settore: ${p.industry || '?'} | Modello: ${p.businessModel || '?'}
+=== BUSINESS PROFILE ===
+Company: ${p.companyName || '?'} | Website: ${p.website || '?'}
+Industry: ${p.industry || '?'} | Model: ${p.businessModel || '?'}
 Stage: ${p.stage || '?'} | Revenue: ${p.revenue || '?'} | Team: ${p.teamSize || '?'} | Funding: ${p.funding || '?'}
-ICP: ${p.icp || '?'} | Motion: ${p.salesMotion || '?'} | Canali: ${p.channels || '?'}
-Deal size: ${p.avgDealSize || '?'} | Ciclo: ${p.salesCycle || '?'}
-Processo vendita: ${p.salesProcess || '?'} | Chi chiude: ${p.whoCloses || '?'}
+ICP: ${p.icp || '?'} | Motion: ${p.salesMotion || '?'} | Channels: ${p.channels || '?'}
+Deal size: ${p.avgDealSize || '?'} | Cycle: ${p.salesCycle || '?'}
+Sales process: ${p.salesProcess || '?'} | Who closes: ${p.whoCloses || '?'}
 Bottleneck: ${p.bottleneck || '?'} | Churn: ${p.churnRate || '?'} | Tools: ${p.tools || '?'}
-Problemi diagnosticati: ${(p.diagnosedProblems||[]).join(', ') || '?'}
-Priorità utente: ${p.userPriority || '?'}
-Contesto extra: ${p.additionalContext || 'nessuno'}
+Diagnosed problems: ${(p.diagnosedProblems||[]).join(', ') || '?'}
+User priority: ${p.userPriority || '?'}
+Extra context: ${p.additionalContext || 'none'}
 
-═══ DATI SCRAPING ═══
-${session.scrapedData || 'Nessun dato'}
+=== SCRAPED DATA ===
+${session.scrapedData || 'No data'}
 
-═══ DOMANDE GIÀ FATTE (NON RIPETERE) ═══
-${session.questionsAsked.length > 0 ? session.questionsAsked.join('\n') : 'Nessuna ancora'}
+=== QUESTIONS ALREADY ASKED (DO NOT REPEAT) ===
+${session.questionsAsked.length > 0 ? session.questionsAsked.join('\n') : 'None yet'}
 
-═══ INSIGHT CHIAVE ═══
-${session.insights.slice(-5).join('\n') || 'Nessuno'}
+=== KEY INSIGHTS ===
+${session.insights.slice(-5).join('\n') || 'None'}
 
-═══ FASE: ${session.currentPhase} | TURNO: ${session.turnCount} ═══`;
+=== PHASE: ${session.currentPhase} | TURN: ${session.turnCount} ===`;
 }
 
 const PROMPTS = {
-  welcome: `Sei il Revenue Architect. Hai appena analizzato il sito web dell'utente.
+  welcome: `You are the Revenue Architect. You just analyzed the user's website.
 
-COMPITO: Crea un messaggio di benvenuto personalizzato.
-1. Saluta e cita 3-4 elementi SPECIFICI dal sito (titoli, prezzi, feature)
-2. Fai 2-3 assunzioni audaci sul loro business
-3. Chiedi conferma: "Ho capito bene? Cosa devo correggere?"
+TASK: Create a personalized welcome message.
+1. Greet them and cite 3-4 SPECIFIC elements from the website (headlines, prices, features)
+2. Make 2-3 bold assumptions about their business
+3. Ask for confirmation: "Did I get this right? What should I correct?"
 
-Sii sicuro, specifico, come un consulente che ha fatto i compiti.`,
+Be confident, specific, like a consultant who did their homework.`,
 
-  company: `Sei nella fase COMPANY. Devi capire i fondamentali dell'azienda.
+  company: `You are in the COMPANY phase. You need to understand the business fundamentals.
 
-TEMI DA ESPLORARE (uno alla volta):
-- Modello di business (SaaS, servizi, marketplace?)
-- Stage e revenue (pre-revenue, early, growth?)
-- Team (quanti? che ruoli?)
-- Funding (bootstrap, funded?)
+TOPICS TO EXPLORE (one at a time):
+- Business model (SaaS, services, marketplace?)
+- Stage and revenue (pre-revenue, early, growth?)
+- Team (how many? what roles?)
+- Funding (bootstrapped, funded?)
 
-REGOLE:
-- Non ripetere domande già fatte
-- Una domanda per turno
-- Includi un benchmark o esempio reale
-- Le opzioni devono essere risposte specifiche alla tua domanda`,
+RULES:
+- Do NOT repeat questions already asked
+- One question per turn
+- Include a benchmark or real example
+- Options must be specific answers to YOUR question`,
 
-  gtm: `Sei nella fase GTM. Devi capire la strategia go-to-market.
+  gtm: `You are in the GTM phase. You need to understand the go-to-market strategy.
 
-TEMI DA ESPLORARE:
-- ICP: chi compra? che ruolo? che aziende?
+TOPICS TO EXPLORE:
+- ICP: who buys? what role? what companies?
 - Sales motion: inbound, outbound, PLG?
-- Canali: quali funzionano? quali no?
-- Metriche: ACV, ciclo di vendita, CAC
+- Channels: which work? which don't?
+- Metrics: ACV, sales cycle, CAC
 
-REGOLE:
-- Connetti alle info già raccolte sull'azienda
-- Una domanda per turno
-- Benchmark specifici per il loro settore`,
+RULES:
+- Connect to the company info already gathered
+- One question per turn
+- Specific benchmarks for their industry`,
 
-  sales: `Sei nella fase SALES. Devi capire il motore di vendita e trovare i bottleneck.
+  sales: `You are in the SALES phase. You need to understand the sales engine and find bottlenecks.
 
-TEMI DA ESPLORARE:
-- Processo di vendita attuale
-- Chi chiude i deal? Founder o team?
-- Dove si bloccano i deal?
-- Win rate, obiezioni, churn
+TOPICS TO EXPLORE:
+- Current sales process
+- Who closes deals? Founder or team?
+- Where do deals get stuck?
+- Win rate, objections, churn
 
-INSIGHTS DA CERCARE:
-- "Founder-Led Sales Trap": se il founder chiude >60% dei deal, c'è un problema di scaling
-- Processo non documentato = ogni nuovo sales riparte da zero
-- Se non misurano, non possono migliorare
+INSIGHTS TO LOOK FOR:
+- "Founder-Led Sales Trap": if founder closes >60% of deals, there's a scaling problem
+- Undocumented process = every new sales rep starts from zero
+- If they don't measure, they can't improve
 
-Sii provocatorio ma rispettoso.`,
+Be provocative but respectful.`,
 
-  diagnosis: `Sei nella fase DIAGNOSIS. HAI ABBASTANZA INFORMAZIONI.
+  diagnosis: `You are in the DIAGNOSIS phase. YOU HAVE ENOUGH INFORMATION.
 
-NON fare altre domande di discovery. PRESENTA LA TUA DIAGNOSI.
+DO NOT ask more discovery questions. PRESENT YOUR DIAGNOSIS.
 
-STRUTTURA:
-1. "Ecco la mia diagnosi:"
-2. TOP 3 problemi che bloccano il revenue, per ognuno:
-   - Nome del problema
-   - Causa radice
-   - Impatto stimato
-3. Ipotesi centrale in una frase
-4. Chiedi: "Questa diagnosi risuona?"
+STRUCTURE:
+1. "Here is my diagnosis:"
+2. TOP 3 problems blocking revenue, for each:
+   - Problem name
+   - Root cause
+   - Estimated impact
+3. Core hypothesis in one sentence
+4. Ask: "Does this diagnosis resonate?"
 
-Usa TUTTI i dati raccolti. Sii specifico, cita numeri reali.`,
+Use ALL the data you collected. Be specific, cite real numbers.`,
 
-  pre_finish: `Sei pronto a generare il report.
+  pre_finish: `You are ready to generate the report.
 
-COMPITO: Presenta il riepilogo finale.
-1. Snapshot dell'azienda (3 frasi)
-2. I 3 problemi diagnosticati
-3. Priorità suggerite
-4. Preview del report: "Il tuo piano includerà: executive summary, diagnosi, roadmap 90 giorni, metriche, tools."
-5. "Sei pronto a generare?"
+TASK: Present the final summary.
+1. Company snapshot (3 sentences)
+2. The 3 diagnosed problems
+3. Suggested priorities
+4. Report preview: "Your plan will include: executive summary, diagnosis, 90-day roadmap, metrics, tools."
+5. "Ready to generate?"
 
-OPZIONI OBBLIGATORIE:
-- { "key": "generate_report", "label": "📥 Genera il Growth Plan" }
-- { "key": "add_context", "label": "Aspetta, voglio aggiungere qualcosa" }`
+REQUIRED OPTIONS:
+- { "key": "generate_report", "label": "📥 Generate Growth Plan" }
+- { "key": "add_context", "label": "Wait, I want to add something" }`
 };
 
 // Determine next phase
@@ -179,22 +179,20 @@ async function callLLM(systemPrompt, userMessage, context, history, geminiKey) {
 
 ${context}
 
-LINGUA: Rispondi nella STESSA lingua dell'utente. Se scrive in italiano, rispondi in italiano. Se in inglese, in inglese.
+USER INPUT: "${userMessage}"
 
-INPUT UTENTE: "${userMessage}"
-
-RISPONDI IN JSON:
+RESPOND IN JSON:
 {
-  "message": "Il tuo messaggio (markdown). Minimo 3-4 frasi.",
-  "options": [{"key": "chiave", "label": "Testo opzione"}, ...],
-  "profile_updates": {"campo": "valore"},
-  "question_asked": "breve descrizione della domanda fatta",
-  "insight": "insight chiave da questo turno"
+  "message": "Your message (markdown). Minimum 3-4 sentences.",
+  "options": [{"key": "key", "label": "Option text"}, ...],
+  "profile_updates": {"field": "value"},
+  "question_asked": "brief description of the question asked",
+  "insight": "key insight from this turn"
 }`;
 
   const messages = [
     { role: 'user', parts: [{ text: fullPrompt }] },
-    { role: 'model', parts: [{ text: 'OK, rispondo in JSON.' }] }
+    { role: 'model', parts: [{ text: 'OK, I will respond in JSON.' }] }
   ];
   
   for (const m of history.slice(-10)) {
@@ -224,7 +222,7 @@ export default async function handler(req, res) {
   try {
     const { choice, history = [], contextData, sessionData } = req.body;
     const geminiKey = process.env.GEMINI_API_KEY;
-    if (!geminiKey) return res.status(200).json({ message: 'API key mancante', options: [] });
+    if (!geminiKey) return res.status(200).json({ message: 'API key missing', options: [] });
 
     let session = sessionData || createSession();
     session.turnCount++;
@@ -245,8 +243,8 @@ export default async function handler(req, res) {
     // GENERATE
     else if (choice === 'generate_report') {
       return res.status(200).json({
-        message: '📥 Generazione in corso...', mode: 'buttons',
-        options: [{ key: 'generating', label: '⏳ Generazione...' }],
+        message: '📥 Generating...', mode: 'buttons',
+        options: [{ key: 'generating', label: '⏳ Generating...' }],
         session_data: session, current_phase: 'finish'
       });
     }
@@ -264,7 +262,7 @@ export default async function handler(req, res) {
     // Get prompt
     let prompt = PROMPTS[session.currentPhase] || PROMPTS.company;
     if (session.currentPhase === 'add_context_mode') {
-      prompt = `L'utente vuole aggiungere contesto. Chiedi cosa vuole aggiungere o correggere. Sii accogliente. Quando ha finito, offri di generare il report con l'opzione generate_report.`;
+      prompt = `The user wants to add context. Ask what they want to add or correct. Be welcoming. When they're done, offer to generate the report with the generate_report option.`;
     }
 
     // Call LLM
@@ -275,8 +273,8 @@ export default async function handler(req, res) {
     } catch (e) {
       console.error('[LLM Error]', e.message);
       llm = {
-        message: "Continuiamo l'analisi. Qual è la tua sfida principale?",
-        options: [{ key: 'continue', label: 'Continua' }],
+        message: "Let's continue the analysis. What's your main challenge?",
+        options: [{ key: 'continue', label: 'Continue' }],
         profile_updates: {}
       };
     }
@@ -305,18 +303,18 @@ export default async function handler(req, res) {
     // Ensure options
     let options = llm.options || [];
     if (!Array.isArray(options) || options.length === 0) {
-      options = [{ key: 'continue', label: 'Continua' }];
+      options = [{ key: 'continue', label: 'Continue' }];
     }
     
     // Force generate option in pre_finish
     if (session.currentPhase === 'pre_finish' && !options.some(o => o.key === 'generate_report')) {
-      options.unshift({ key: 'generate_report', label: '📥 Genera il Growth Plan' });
+      options.unshift({ key: 'generate_report', label: '📥 Generate Growth Plan' });
     }
 
     console.log(`[v10] Turn ${session.turnCount} | Phase: ${session.currentPhase}`);
 
     return res.status(200).json({
-      message: llm.message || 'Continuiamo.',
+      message: llm.message || 'Let\'s continue.',
       options: options.filter(o => o && o.key && o.label).slice(0, 6),
       mode: session.currentPhase === 'pre_finish' ? 'buttons' : 'mixed',
       allow_text: session.currentPhase !== 'pre_finish',
@@ -328,8 +326,8 @@ export default async function handler(req, res) {
   } catch (e) {
     console.error('[v10 ERROR]', e);
     return res.status(200).json({
-      message: "Errore. Qual è la tua sfida principale?",
-      options: [{ key: 'retry', label: 'Riprova' }],
+      message: "Error. What's your main challenge?",
+      options: [{ key: 'retry', label: 'Retry' }],
       mode: 'mixed', allow_text: true
     });
   }
