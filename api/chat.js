@@ -477,7 +477,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { choice, history = [], contextData, sessionData: input } = req.body;
+    const { choice, history = [], contextData, sessionData: input, attachments = [] } = req.body;
     const gKey = process.env.GEMINI_API_KEY;
     const tKey = process.env.TAVILY_API_KEY;
     if (!gKey) return res.status(200).json({ message: '⚠️ GEMINI_API_KEY missing.', options: [{ key: 'restart', label: 'Retry' }], session_data: null, current_phase: 'error' });
@@ -485,6 +485,29 @@ export default async function handler(req, res) {
     let S = input || createSession();
     S.totalTurns++;
     S.phaseTurns++;
+
+    // Process attachments if present
+    let attachmentContext = '';
+    if (attachments && attachments.length > 0) {
+      attachmentContext = '\n\n═══ USER ATTACHED FILES ═══\n';
+      attachments.forEach((file, idx) => {
+        attachmentContext += `File ${idx + 1}: "${file.name}" (${file.type}, ${Math.round(file.size / 1024)} KB)\n`;
+        // For images, note that they can be analyzed; for documents, note content may need extraction
+        if (file.type.startsWith('image/')) {
+          attachmentContext += '  → Image file: User may be sharing visual context (screenshots, diagrams, analytics, etc.)\n';
+        } else if (file.type.includes('pdf')) {
+          attachmentContext += '  → PDF document: May contain reports, slides, documentation\n';
+        } else {
+          attachmentContext += '  → Document file: May contain business data, reports, or context\n';
+        }
+      });
+      attachmentContext += 'NOTE: Acknowledge the files and ask the user to briefly explain what they contain and why they shared them.\n';
+      
+      // Store attachment metadata in session for reference
+      if (!S.profile.additionalContext) S.profile.additionalContext = '';
+      const fileList = attachments.map(f => f.name).join(', ');
+      S.profile.additionalContext += `\n[Files attached: ${fileList}]`;
+    }
 
     // ══════════════════════════════════════════════════
     // SPECIAL ACTIONS
@@ -582,6 +605,7 @@ ${profileCtx}
 
 ═══ WEBSITE SCAN DATA ═══
 ${S.scrapedSummary || '(none)'}
+${attachmentContext}
 
 ═══ CURRENT STATE ═══
 Phase: ${S.currentPhase} | Phase turn: ${S.phaseTurns} | Total turns: ${S.totalTurns}
@@ -618,7 +642,8 @@ ${choice !== 'SNAPSHOT_INIT' ? `═══ USER'S LATEST MESSAGE ═══\n"${ch
 8. Never invent data. Only reference ✅ confirmed data or scraped website data.
 9. Minimum 5 sentences per response. This is a premium consulting experience.
 10. Never use filler: "interesting", "great", "that's helpful", "let me understand", "tell me more".
-11. Every turn should teach the user something — a benchmark, a framework, an insight about their business.`;
+11. Every turn should teach the user something — a benchmark, a framework, an insight about their business.
+12. If the user attached files, acknowledge them first and ask what they contain and why they're relevant.`;
 
     // ══════════════════════════════════════════════════
     // CALL LLM
