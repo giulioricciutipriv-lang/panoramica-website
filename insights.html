@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insights - Panoramica Solutions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { 'pano-bg': '#050505', 'pano-lime': '#DCEE6A', 'pano-grey': '#A0A0A0', 'pano-border': '#262626' },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>body { background-color: #050505; color: white; }</style>
+    <script src="auth-check.js"></script>
+</head>
+<body class="antialiased">
+
+<nav class="fixed w-full z-50 bg-black/90 backdrop-blur-md border-b border-[#222]">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between relative">
+            
+            <div class="flex-shrink-0 cursor-pointer z-20">
+                <a href="index.html">
+                    <img src="PanoramicaChiaro.png" alt="Panoramica" class="h-6 md:h-8 w-auto object-contain">
+                </a>
+            </div>
+
+            <div class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-300 absolute left-1/2 -translate-x-1/2 mt-2">
+                
+                <a href="index.html" class="hover:text-white transition relative">Home</a>
+                
+                <div class="relative group">
+                    <a href="#" class="hover:text-white transition peer">Marketplace</a>
+                    <span class="absolute -top-2.5 left-1/2 -translate-x-1/2 px-1.5 py-[1px] bg-pano-lime text-black text-[7px] font-extrabold uppercase tracking-widest rounded-[2px] shadow-[0_0_6px_rgba(220,238,106,0.8)] pointer-events-none select-none whitespace-nowrap leading-tight">
+                        Beta
+                    </span>
+                </div>
+
+                <a href="#" class="text-white font-bold transition relative">Insights</a>
+            </div>
+
+            <div class="hidden md:flex items-center gap-6 z-20">
+                <a href="https://meetings-eu1.hubspot.com/panoramica-solutions" target="_blank" 
+                   class="px-5 py-2.5 bg-pano-lime text-black font-bold text-sm rounded hover:bg-white transition shadow-[0_0_15px_rgba(220,238,106,0.4)] hover:shadow-[0_0_20px_rgba(220,238,106,0.6)]">
+                    Book Audit
+                </a>
+            </div>
+
+            <div class="flex items-center gap-4 md:hidden z-20">
+                <a href="https://meetings-eu1.hubspot.com/panoramica-solutions" target="_blank" 
+                   class="px-4 py-2 bg-pano-lime text-black font-bold text-xs rounded hover:bg-white transition shadow-[0_0_10px_rgba(220,238,106,0.4)]">
+                    Book Audit
+                </a>
+                <button class="text-white focus:outline-none p-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <header class="pt-40 pb-20 px-6 text-center">
+        <h1 class="text-4xl md:text-6xl font-bold mb-6">Operational <span class="text-pano-lime">Insights</span></h1>
+        <p class="text-pano-grey text-lg max-w-2xl mx-auto">Strategies, frameworks, and technical deep-dives for revenue leaders.</p>
+    </header>
+
+    <section class="max-w-7xl mx-auto px-6 pb-24">
+        <div id="blog-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            </div>
+    </section>
+
+    <script>
+        fetch('posts.json')
+            .then(response => response.json())
+            .then(posts => {
+                const grid = document.getElementById('blog-grid');
+                posts.forEach(post => {
+                    const card = `
+                        <a href="article.html?id=${post.id}" class="group block bg-[#0F0F0F] border border-pano-border rounded-xl overflow-hidden hover:border-pano-lime transition duration-300">
+                            <div class="h-48 overflow-hidden">
+                                <img src="${post.image}" alt="${post.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500 opacity-80 group-hover:opacity-100">
+                            </div>
+                            <div class="p-6">
+                                <div class="flex justify-between items-center mb-3">
+                                    <span class="text-xs font-bold text-pano-lime uppercase tracking-widest">${post.category}</span>
+                                    <span class="text-xs text-pano-grey">${post.date}</span>
+                                </div>
+                                <h2 class="text-xl font-bold text-white mb-3 group-hover:text-pano-lime transition">${post.title}</h2>
+                                <p class="text-sm text-pano-grey line-clamp-3">${post.excerpt}</p>
+                                <div class="mt-4 text-sm font-bold text-white flex items-center gap-2">
+                                    Read Article <span class="group-hover:translate-x-1 transition">→</span>
+                                </div>
+                            </div>
+                        </a>
+                    `;
+                    grid.innerHTML += card;
+                });
+            });
+    </script>
+</body>
+</html>

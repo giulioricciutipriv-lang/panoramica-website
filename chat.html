@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Revenue Architect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        tailwind.config={theme:{extend:{colors:{'p-bg':'#030303','p-panel':'#0A0A0A','p-card':'#0F0F0F','p-lime':'#CDFF00','p-lime2':'#B8E600','p-grey':'#888','p-greyL':'#A0A0A0','p-bdr':'#1A1A1A','p-bdr2':'#2A2A2A'},fontFamily:{sans:['Inter','system-ui'],mono:['JetBrains Mono','monospace']}}}}
+    </script>
+    <style>
+        *{box-sizing:border-box}html,body{height:100%;margin:0;padding:0}
+        body{background:#030303;color:#fff;display:flex;flex-direction:column;overflow:hidden}
+        /* Scrollbar */
+        .scr::-webkit-scrollbar{width:6px}.scr::-webkit-scrollbar-track{background:transparent}.scr::-webkit-scrollbar-thumb{background:#2A2A2A;border-radius:3px}
+        /* Markdown prose */
+        .prose{font-size:.9375rem;line-height:1.7}.prose p{margin-bottom:1em;color:#E0E0E0}.prose p:last-child{margin-bottom:0}.prose strong{color:#fff;font-weight:600}.prose em{color:#B0B0B0}
+        .prose ul,.prose ol{padding-left:1.5em;margin:1em 0;color:#C0C0C0}.prose li{margin-bottom:.5em}.prose li::marker{color:#CDFF00}
+        .prose a{color:#CDFF00;text-decoration:underline}.prose a:hover{color:#fff}
+        .prose code{background:#1A1A1A;padding:.2em .4em;border-radius:4px;font-size:.85em}
+        .prose h1,.prose h2,.prose h3{color:#fff;font-weight:600;margin:1.2em 0 .6em}.prose h1{font-size:1.4em}.prose h2{font-size:1.2em}.prose h3{font-size:1.05em}
+        .prose blockquote{border-left:3px solid #CDFF00;padding-left:1em;margin:1em 0;color:#A0A0A0;font-style:italic}
+        .prose hr{border:none;border-top:1px solid #2A2A2A;margin:1.5em 0}
+        .prose table{width:100%;border-collapse:collapse;margin:1em 0;font-size:.85em}
+        .prose th{text-align:left;padding:6px 10px;border-bottom:2px solid #333;color:#CDFF00;font-weight:600}
+        .prose td{padding:5px 10px;border-bottom:1px solid #1A1A1A;color:#C0C0C0}
+        /* Animations */
+        @keyframes mi{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}.mi{animation:mi .4s cubic-bezier(.16,1,.3,1) forwards}
+        @keyframes td{0%,60%,100%{opacity:.3}30%{opacity:1}}.td{animation:td 1.4s infinite;width:6px;height:6px;background:#CDFF00;border-radius:50%}.td:nth-child(2){animation-delay:.15s}.td:nth-child(3){animation-delay:.3s}
+        /* Phase dots */
+        .dot{width:10px;height:10px;border-radius:50%;border:2px solid #333;transition:all .3s ease}.dot.on{background:#22c55e;border-color:#22c55e}.dot.now{background:#CDFF00;border-color:#CDFF00;box-shadow:0 0 8px rgba(205,255,0,.4)}.dot.off{background:transparent}
+        .ln{height:2px;width:20px;transition:background .3s}.ln.on{background:#22c55e}.ln.now{background:linear-gradient(90deg,#22c55e,#CDFF00)}.ln.off{background:#1A1A1A}
+        /* Mobile tweaks */
+        @media(max-width:640px){
+            .prose{font-size:.875rem;line-height:1.6}
+            .phase-labels{display:none!important}
+        }
+    </style>
+    <script src="auth-check.js"></script>
+</head>
+<body class="selection:bg-p-lime selection:text-black">
+
+    <!-- ═══════════════════ MODAL ═══════════════════ -->
+    <div id="modal" class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 transition-opacity duration-400">
+        <div class="bg-p-card border border-p-bdr w-full max-w-lg rounded-2xl shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-p-lime/5 blur-[80px] rounded-full pointer-events-none"></div>
+            <div class="relative z-10 p-6 sm:p-8">
+                <div class="flex items-start gap-4 mb-6">
+                    <div class="w-12 h-12 bg-p-lime/10 border border-p-lime/30 rounded-xl flex items-center justify-center text-p-lime shrink-0">
+                        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5"/></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-bold mb-1">Revenue Architect</h2>
+                        <p class="text-p-grey text-sm">AI-powered B2B revenue diagnostic. Provide your digital footprint to begin.</p>
+                    </div>
+                </div>
+                <form id="form" onsubmit="init(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Company Website <span class="text-red-400">*</span></label>
+                        <input type="url" id="f-web" required placeholder="https://yourcompany.com" class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none placeholder:text-gray-600 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Business Description <span class="text-p-lime text-[10px] ml-1">IMPORTANT</span></label>
+                        <textarea id="f-desc" rows="2" placeholder="What you sell, who you sell to, how you make money..." class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none placeholder:text-gray-600 resize-none transition-colors"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">LinkedIn Company Page <span class="text-p-grey text-[10px]">OPTIONAL</span></label>
+                        <input type="url" id="f-li" placeholder="https://linkedin.com/company/..." class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none placeholder:text-gray-600 transition-colors">
+                    </div>
+                    <button type="submit" id="f-btn" class="w-full bg-p-lime text-black font-bold py-4 rounded-xl hover:bg-p-lime2 transition-all shadow-[0_0_40px_rgba(205,255,0,.15)] flex items-center justify-center gap-2 mt-2">
+                        <span>Start Diagnostic</span>
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════ HEADER ═══════════════════ -->
+    <header class="h-14 border-b border-p-bdr bg-p-bg/90 backdrop-blur-md flex items-center justify-between px-4 md:px-6 z-40 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-2 h-7 bg-p-lime rounded-full"></div>
+            <div>
+                <h1 class="font-bold text-sm tracking-wide">REVENUE ARCHITECT</h1>
+                <span id="st" class="text-[10px] text-p-grey font-mono">READY</span>
+            </div>
+            <!-- Phase tracker -->
+            <div id="ph" class="hidden md:flex items-center ml-4 pl-4 border-l border-p-bdr gap-0.5">
+                <div class="flex flex-col items-center"><div id="d0" class="dot off"></div><span class="phase-labels text-[7px] text-p-grey mt-0.5 font-mono">INIT</span></div>
+                <div id="l1" class="ln off mx-0.5"></div>
+                <div class="flex flex-col items-center"><div id="d1" class="dot off"></div><span class="phase-labels text-[7px] text-p-grey mt-0.5 font-mono">CO</span></div>
+                <div id="l2" class="ln off mx-0.5"></div>
+                <div class="flex flex-col items-center"><div id="d2" class="dot off"></div><span class="phase-labels text-[7px] text-p-grey mt-0.5 font-mono">GTM</span></div>
+                <div id="l3" class="ln off mx-0.5"></div>
+                <div class="flex flex-col items-center"><div id="d3" class="dot off"></div><span class="phase-labels text-[7px] text-p-grey mt-0.5 font-mono">SALES</span></div>
+                <div id="l4" class="ln off mx-0.5"></div>
+                <div class="flex flex-col items-center"><div id="d4" class="dot off"></div><span class="phase-labels text-[7px] text-p-grey mt-0.5 font-mono">DX</span></div>
+                <div id="l5" class="ln off mx-0.5"></div>
+                <div class="flex flex-col items-center"><div id="d5" class="dot off"></div><span class="phase-labels text-[7px] text-p-grey mt-0.5 font-mono">✓</span></div>
+                <div class="ml-3 pl-3 border-l border-p-bdr">
+                    <span id="conf" class="text-xs font-mono text-p-lime">0%</span>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <span id="tn" class="text-[10px] font-mono text-p-grey"></span>
+            <button onclick="confirmReset()" class="text-xs text-p-grey hover:text-white border border-p-bdr px-3 py-1.5 rounded-lg hover:bg-white/5 transition">Reset</button>
+        </div>
+    </header>
+    <div class="w-full h-[2px] bg-p-panel"><div id="bar" class="h-full bg-gradient-to-r from-p-lime to-p-lime2 transition-all duration-700" style="width:0%"></div></div>
+
+    <!-- ═══════════════════ CHAT ═══════════════════ -->
+    <main id="chat" class="flex-1 overflow-y-auto scr scroll-smooth">
+        <div class="max-w-3xl mx-auto py-6 px-4 md:px-0 min-h-full flex flex-col justify-end">
+            <div id="msgs" class="space-y-5"></div>
+            <div class="h-32"></div>
+        </div>
+    </main>
+
+    <!-- ═══════════════════ CONTROLS ═══════════════════ -->
+    <div class="shrink-0 bg-gradient-to-t from-p-bg via-p-bg/95 to-transparent pt-10 pb-5 px-4 z-30">
+        <div class="max-w-3xl mx-auto space-y-3">
+            <div id="opts" class="flex flex-col gap-2"></div>
+            <div id="inp" class="hidden opacity-0 transition-opacity duration-300">
+                <div class="bg-p-card border border-p-bdr rounded-xl flex items-center p-2 focus-within:border-p-lime/50 transition-all">
+                    <input type="text" id="ti" class="flex-1 bg-transparent border-none text-white text-sm px-3 focus:ring-0 focus:outline-none placeholder:text-gray-600 h-10" placeholder="Type your response...">
+                    <button onclick="sendText()" id="send-btn" class="p-2.5 bg-p-lime text-black rounded-lg hover:bg-p-lime2 transition-all shrink-0">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>
+                    </button>
+                </div>
+            </div>
+            <p class="text-center text-[10px] text-gray-700 font-mono tracking-widest pt-1">PANORAMICA v9.0</p>
+        </div>
+    </div>
+
+    <script>
+    // ═══════════════════════════════════════════════════════════════
+    // CONFIGURATION
+    // ═══════════════════════════════════════════════════════════════
+    const API = "/api/chat";
+    const RAPI = "/api/report";
+
+    // ═══════════════════════════════════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════════════════════════════════
+    let H = [];           // Conversation history for API
+    let S = null;         // Session data from server
+    let busy = false;     // Lock to prevent double-sends
+    let diag = {};        // Initial diagnostic data (website, desc, linkedin)
+    let lastMD = '';      // Last report markdown for re-download
+
+    // ═══════════════════════════════════════════════════════════════
+    // DOM HELPERS
+    // ═══════════════════════════════════════════════════════════════
+    const $ = id => document.getElementById(id);
+    const chat = $('chat'), msgs = $('msgs'), opts = $('opts'), inp = $('inp'), ti = $('ti');
+
+    function scroll() {
+        requestAnimationFrame(() => {
+            chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
+        });
+    }
+
+    function confirmReset() {
+        if (H.length > 2) {
+            if (confirm('Reset the diagnostic? All progress will be lost.')) location.reload();
+        } else {
+            location.reload();
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // MESSAGE RENDERING
+    // ═══════════════════════════════════════════════════════════════
+    function addU(text) {
+        const d = document.createElement('div');
+        d.className = 'flex gap-3 flex-row-reverse mi';
+        d.innerHTML = `
+            <div class="w-8 h-8 rounded-xl bg-p-lime flex items-center justify-center shrink-0">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="text-black">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
+                </svg>
+            </div>
+            <div class="max-w-[80%]">
+                <div class="text-sm bg-p-panel border border-p-bdr p-3.5 rounded-2xl rounded-tr-md">${text.replace(/</g, '&lt;')}</div>
+            </div>`;
+        msgs.appendChild(d);
+        scroll();
+    }
+
+    function addA(text) {
+        if (!text) return;
+        const d = document.createElement('div');
+        d.className = 'flex gap-3 mi';
+        let html;
+        try {
+            marked.setOptions({ breaks: true, gfm: true });
+            html = marked.parse(text);
+        } catch {
+            html = text;
+        }
+        d.innerHTML = `
+            <div class="w-8 h-8 rounded-xl bg-p-panel border border-p-bdr flex items-center justify-center shrink-0">
+                <span class="text-p-lime font-mono text-[10px] font-bold">RA</span>
+            </div>
+            <div class="flex-1 max-w-[85%]">
+                <div class="prose bg-p-card border border-p-bdr p-4 rounded-2xl rounded-tl-md">${html}</div>
+            </div>`;
+        msgs.appendChild(d);
+        scroll();
+    }
+
+    function typing(on) {
+        // Always remove existing typing indicator first
+        const existing = $('typ');
+        if (existing) existing.remove();
+
+        if (on) {
+            const d = document.createElement('div');
+            d.id = 'typ';
+            d.className = 'flex gap-3 mi';
+            d.innerHTML = `
+                <div class="w-8 h-8 rounded-xl bg-p-panel border border-p-bdr flex items-center justify-center shrink-0">
+                    <span class="text-p-lime font-mono text-[10px] font-bold">RA</span>
+                </div>
+                <div class="flex gap-1.5 items-center bg-p-card border border-p-bdr px-5 py-3 rounded-2xl">
+                    <div class="td"></div><div class="td"></div><div class="td"></div>
+                </div>`;
+            msgs.appendChild(d);
+            scroll();
+        }
+    }
+
+    function loading(text) {
+        opts.innerHTML = `
+            <div class="w-full bg-p-card border border-p-bdr p-4 rounded-xl flex items-center gap-3">
+                <div class="w-4 h-4 border-2 border-p-lime border-t-transparent rounded-full animate-spin"></div>
+                <span class="text-xs font-mono text-p-lime uppercase tracking-widest">${text}</span>
+            </div>`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PHASE TRACKER
+    // ═══════════════════════════════════════════════════════════════
+    function updPhase(phase, conf) {
+        $('ph').classList.remove('hidden');
+        const map = {
+            welcome: 0, company: 1, gtm: 2, sales: 3,
+            diagnosis: 4, pre_finish: 5, finish: 5,
+            add_context: 4 // stays at diagnosis level
+        };
+        const idx = map[phase] ?? 0;
+
+        for (let i = 0; i < 6; i++) {
+            const d = $(`d${i}`);
+            d.classList.remove('on', 'now', 'off');
+            d.classList.add(i < idx ? 'on' : i === idx ? 'now' : 'off');
+        }
+        for (let i = 1; i <= 5; i++) {
+            const l = $(`l${i}`);
+            l.classList.remove('on', 'now', 'off');
+            l.classList.add(i < idx ? 'on' : i === idx ? 'now' : 'off');
+        }
+
+        const pct = conf?.total || Math.round((idx / 5) * 100);
+        $('bar').style.width = pct + '%';
+        $('conf').textContent = pct + '%';
+        $('tn').textContent = 'T' + (S?.turnCount || 0);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // OPTIONS DISPLAY
+    // ═══════════════════════════════════════════════════════════════
+    function showOpts(list, allowText) {
+        opts.innerHTML = '';
+        inp.classList.add('hidden', 'opacity-0');
+
+        (list || []).forEach((o, i) => {
+            const b = document.createElement('button');
+            b.style.animationDelay = `${i * 0.06}s`;
+            b.onclick = () => pick(o.key, o.label);
+
+            if (o.key === 'generate_report' || o.key === 'update_and_generate') {
+                b.className = 'mi w-full bg-p-lime text-black border-2 border-p-lime p-4 rounded-xl font-bold flex items-center justify-between hover:bg-p-lime2 hover:scale-[1.01] transition-all shadow-[0_0_30px_rgba(205,255,0,.15)]';
+                b.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                        </svg>
+                        <span>${o.label}</span>
+                    </div>
+                    <span class="text-sm opacity-70">PDF</span>`;
+            } else {
+                b.className = 'mi w-full text-left bg-p-card border border-p-bdr hover:border-p-lime/50 p-3.5 rounded-xl transition-all group flex items-center justify-between';
+                b.innerHTML = `
+                    <span class="text-sm font-medium">${o.label}</span>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" class="text-p-grey group-hover:text-p-lime group-hover:translate-x-1 transition-all shrink-0 ml-2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                    </svg>`;
+            }
+            opts.appendChild(b);
+        });
+
+        // Show text input if allowed
+        if (allowText !== false) {
+            inp.classList.remove('hidden');
+            setTimeout(() => {
+                inp.classList.remove('opacity-0');
+                // Don't auto-focus on mobile (avoids keyboard popping up)
+                if (window.innerWidth > 768) ti.focus();
+            }, 150);
+        }
+        scroll();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // API CALL WITH RETRY
+    // ═══════════════════════════════════════════════════════════════
+    async function api(body) {
+        for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 60000);
+                const r = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                    signal: controller.signal
+                });
+                clearTimeout(timeout);
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                return await r.json();
+            } catch (e) {
+                if (attempt === 2) throw e;
+                await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+            }
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PICK OPTION / SEND RESPONSE
+    // ═══════════════════════════════════════════════════════════════
+    async function pick(key, label) {
+        if (busy) return;
+
+        // Handle special actions
+        if (key === 'generate_report' || key === 'update_and_generate') { genPDF(); return; }
+        if (key === 'restart') { location.reload(); return; }
+        if (key === 'download_again') { genPDF(); return; }
+
+        busy = true;
+        addU(label || key);
+        typing(true);
+        loading('ANALYZING...');
+        $('st').textContent = 'THINKING';
+
+        try {
+            const data = await api({
+                choice: key,
+                history: H,
+                sessionData: S,
+                contextData: diag
+            });
+
+            S = data.session_data;
+            H.push(
+                { role: 'user', content: key },
+                { role: 'assistant', content: JSON.stringify(data) }
+            );
+
+            typing(false);
+            updPhase(data.current_phase, data.confidence_state);
+            addA(data.message);
+            showOpts(data.options, data.allow_text !== false && data.mode !== 'buttons');
+            $('st').textContent = 'READY';
+
+        } catch (e) {
+            console.error('[pick error]', e);
+            typing(false);
+            $('st').textContent = 'ERROR';
+            opts.innerHTML = `
+                <div class="text-red-400 p-4 text-center bg-red-900/10 border border-red-900/50 rounded-xl space-y-2">
+                    <p class="text-sm">Connection error: ${e.message}</p>
+                    <button onclick="pick('${key.replace(/'/g, "\\'")}','${(label || key).replace(/'/g, "\\'")}')" class="bg-red-900/30 px-4 py-2 rounded-lg text-sm hover:bg-red-900/50 transition">Retry</button>
+                </div>`;
+        } finally {
+            busy = false;
+        }
+    }
+
+    function sendText() {
+        const t = ti.value.trim();
+        if (!t || busy) return;
+        ti.value = '';
+        pick(t, t);
+    }
+
+    ti.addEventListener('keypress', e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendText();
+        }
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // INITIALIZATION
+    // ═══════════════════════════════════════════════════════════════
+    async function init(e) {
+        e.preventDefault();
+
+        const w = $('f-web').value.trim();
+        const d = $('f-desc').value.trim();
+        const l = $('f-li').value.trim();
+
+        // Validate URL
+        try { new URL(w); } catch { alert('Please enter a valid URL'); return; }
+
+        // Disable button
+        $('f-btn').disabled = true;
+        $('f-btn').innerHTML = '<div class="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div> <span>Scanning website...</span>';
+
+        // Hide modal
+        $('modal').style.opacity = '0';
+        setTimeout(() => $('modal').classList.add('hidden'), 400);
+
+        // Show initial state
+        addA("**Initializing Revenue Architect** — Scanning your website and preparing the diagnostic...");
+        loading('SCANNING WEBSITE...');
+        $('st').textContent = 'SCANNING';
+
+        diag = { website: w, description: d, linkedin: l };
+
+        try {
+            const data = await api({
+                choice: 'SNAPSHOT_INIT',
+                history: [],
+                contextData: diag,
+                sessionData: null
+            });
+
+            S = data.session_data;
+            H.push({ role: 'assistant', content: JSON.stringify(data) });
+
+            updPhase(data.current_phase, data.confidence_state);
+            addA(data.message);
+            showOpts(data.options, data.allow_text !== false && data.mode !== 'buttons');
+            $('st').textContent = 'READY';
+
+        } catch (err) {
+            console.error('[init error]', err);
+            $('st').textContent = 'FAILED';
+            opts.innerHTML = `
+                <button onclick="location.reload()" class="w-full text-red-400 border border-red-900/50 bg-red-900/10 p-4 rounded-xl hover:bg-red-900/20 transition">
+                    Failed to connect — click to retry
+                </button>`;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PDF GENERATION — window.print() approach (reliable)
+    // ═══════════════════════════════════════════════════════════════
+    async function genPDF() {
+        if (busy) return;
+        busy = true;
+        loading('GENERATING STRATEGIC GROWTH PLAN...');
+        $('st').textContent = 'GENERATING';
+
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 120000);
+            const r = await fetch(RAPI, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    history: H,
+                    sessionData: S,
+                    diagnosticData: diag
+                }),
+                signal: controller.signal
+            });
+            clearTimeout(timeout);
+
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            const data = await r.json();
+            if (data.error) throw new Error(data.error);
+            if (!data.report) throw new Error('Empty report received');
+
+            lastMD = data.report;
+            loading('FORMATTING REPORT...');
+
+            // Parse markdown to HTML
+            marked.setOptions({ breaks: true, gfm: true, tables: true });
+            const html = marked.parse(data.report);
+            const company = S?.profile?.companyName || 'Company';
+            const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+            const fullHTML = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Strategic Growth Plan — ${company}</title>
+<style>
+@media print {
+    @page { margin: 15mm 12mm; size: A4; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none !important; }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Arial, Helvetica, sans-serif; font-size: 10.5pt; line-height: 1.5; color: #1a1a1a; background: #fff; }
+
+/* Header */
+.hdr { background: #111; color: #fff; padding: 35px; margin-bottom: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.hdr .bar { width: 50px; height: 3px; background: #CDFF00; margin-bottom: 14px; }
+.hdr h1 { font-size: 22pt; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.5px; }
+.hdr .sub { font-size: 11pt; color: #CDFF00; font-weight: 500; }
+.hdr .meta { font-size: 8.5pt; color: #999; margin-top: 8px; }
+
+/* Content */
+.body { padding: 0 35px 35px; }
+h1 { font-size: 16pt; font-weight: 700; margin: 24px 0 10px; padding-bottom: 4px; border-bottom: 2px solid #CDFF00; page-break-after: avoid; color: #111; }
+h2 { font-size: 12.5pt; font-weight: 600; margin: 18px 0 8px; padding-bottom: 3px; border-bottom: 1px solid #ddd; page-break-after: avoid; color: #222; }
+h3 { font-size: 11pt; font-weight: 600; margin: 14px 0 6px; page-break-after: avoid; color: #333; }
+p { margin: 0 0 8px; }
+strong { font-weight: 600; color: #000; }
+em { font-style: italic; color: #555; }
+ul, ol { margin: 6px 0 10px; padding-left: 20px; }
+li { margin-bottom: 3px; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 9pt; page-break-inside: avoid; }
+th { font-weight: 600; text-align: left; padding: 7px 8px; border: 1px solid #ddd; background: #f5f5f5; }
+td { padding: 6px 8px; border: 1px solid #ddd; }
+tr:nth-child(even) { background: #fafafa; }
+
+blockquote { border-left: 3px solid #CDFF00; background: #f9f9f9; padding: 8px 12px; margin: 10px 0; font-style: italic; color: #555; }
+hr { border: none; border-top: 1px solid #ddd; margin: 18px 0; }
+a { color: #0066cc; }
+code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-size: 9pt; }
+
+/* Footer */
+.ftr { margin-top: 20px; padding-top: 10px; border-top: 1px solid #ddd; font-size: 8pt; color: #999; text-align: center; }
+
+/* Print button */
+.print-bar { position: fixed; top: 0; left: 0; right: 0; background: #111; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; z-index: 100; }
+.print-bar span { color: #CDFF00; font-family: monospace; font-size: 12px; }
+.print-bar button { background: #CDFF00; color: #000; border: none; padding: 8px 20px; font-weight: 700; cursor: pointer; border-radius: 6px; font-size: 13px; }
+.print-bar button:hover { background: #B8E600; }
+.print-spacer { height: 52px; }
+</style></head><body>
+<div class="print-bar no-print">
+    <span>REVENUE ARCHITECT</span>
+    <button onclick="window.print()">⬇ Save as PDF (Ctrl+P)</button>
+</div>
+<div class="print-spacer no-print"></div>
+<div class="hdr">
+    <div class="bar"></div>
+    <h1>Strategic Growth Plan</h1>
+    <div class="sub">${company}</div>
+    <div class="meta">Revenue Architect by Panoramica &nbsp;|&nbsp; ${date} &nbsp;|&nbsp; Confidential</div>
+</div>
+<div class="body">${html}</div>
+<div class="ftr">
+    <p>Generated by Revenue Architect by Panoramica — Confidential</p>
+</div>
+</body></html>`;
+
+            // Open in new window
+            const w2 = window.open('', '_blank', 'width=900,height=1100');
+            if (w2) {
+                w2.document.write(fullHTML);
+                w2.document.close();
+            } else {
+                // Popup blocked — download as HTML file
+                const blob = new Blob([fullHTML], { type: 'text/html' });
+                const u = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = u;
+                a.download = `Growth_Plan_${company.replace(/\s+/g, '_')}.html`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(u);
+            }
+
+            addA("✅ **Your Strategic Growth Plan is ready!**\n\nUse **Ctrl+P** (or Cmd+P on Mac) in the report window to save as PDF.\n\nThe report includes: executive summary, company DNA analysis, ICP assessment, diagnostic findings with root cause analysis, strategic recommendations, 90-day roadmap, metrics dashboard, risk mitigation plan, and tool recommendations.");
+            showOpts([
+                { key: 'download_again', label: '📥 Open Report Again' },
+                { key: 'restart', label: 'Start New Diagnostic' }
+            ], false);
+            updPhase('finish', { total: 100 });
+            $('st').textContent = 'COMPLETE';
+
+        } catch (e) {
+            console.error('[genPDF error]', e);
+            $('st').textContent = 'FAILED';
+            opts.innerHTML = `
+                <div class="text-red-400 p-4 text-center bg-red-900/10 border border-red-900/50 rounded-xl space-y-3">
+                    <p class="text-sm">Report generation failed: ${e.message}</p>
+                    <div class="flex gap-3 justify-center flex-wrap">
+                        <button onclick="genPDF()" class="bg-red-900/30 px-4 py-2 rounded-lg text-sm hover:bg-red-900/50 transition">Retry</button>
+                        ${lastMD ? '<button onclick="dlMD()" class="bg-p-bdr px-4 py-2 rounded-lg text-sm text-white hover:bg-p-bdr2 transition">Download as Markdown</button>' : ''}
+                    </div>
+                </div>`;
+        } finally {
+            busy = false;
+        }
+    }
+
+    function dlMD() {
+        if (!lastMD) return;
+        const blob = new Blob([lastMD], { type: 'text/markdown' });
+        const u = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = u;
+        a.download = `Growth_Plan_${S?.profile?.companyName?.replace(/\s+/g, '_') || 'Company'}.md`;
+        a.click();
+        URL.revokeObjectURL(u);
+    }
+
+    // Warn before leaving
+    window.addEventListener('beforeunload', e => {
+        if (H.length > 2) { e.preventDefault(); e.returnValue = ''; }
+    });
+    </script>
+</body>
+</html>

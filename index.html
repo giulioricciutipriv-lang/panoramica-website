@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panoramica Solutions | Tailored RevOps</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { 
+                        'pano-bg': '#050505',
+                        'pano-card': '#0F0F0F',
+                        'pano-lime': '#DCEE6A',
+                        'pano-grey': '#A0A0A0',
+                        'pano-border': '#262626',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    backgroundImage: {
+                        'lime-glow': 'radial-gradient(circle at center, rgba(220, 238, 106, 0.15) 0%, rgba(5, 5, 5, 0) 70%)',
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { 
+            background-color: #050505; color: white; overflow-x: hidden; width: 100%; 
+            /* NASCONDE IL CURSORE STANDARD SU PC */
+            cursor: none; 
+        }
+
+        /* Riabilita il cursore normale sui dispositivi touch (dove non c'è mouse) */
+        @media (hover: none) {
+            body { cursor: auto; }
+        }
+
+        /* --- ANIMAZIONI INTRODUTTIVE (WIPE) --- */
+        @keyframes logo-wipe-reveal {
+            0% { clip-path: inset(0 100% 0 0); -webkit-clip-path: inset(0 100% 0 0); }
+            100% { clip-path: inset(0 0 0 0); -webkit-clip-path: inset(0 0 0 0); }
+        }
+        @keyframes fade-out-overlay {
+            0% { opacity: 1; visibility: visible; }
+            90% { opacity: 0; visibility: visible; }
+            100% { opacity: 0; visibility: hidden; }
+        }
+        @keyframes fade-in-delayed {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        @keyframes slide-up { from { transform: translateY(20px); } to { transform: translateY(0); } }
+
+        /* --- CLASSI INTRO --- */
+        .intro-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #050505; display: flex; align-items: center; justify-content: center; z-index: 9999;
+            animation: fade-out-overlay 0.8s ease-out 1.8s forwards;
+        }
+        .intro-logo-wipe {
+            height: 20vh;
+            animation: logo-wipe-reveal 1.5s ease-in-out forwards;
+        }
+        @media (min-width: 768px) { .intro-logo-wipe { height: 30vh; } }
+
+        .hero-content-delayed {
+            opacity: 0;
+            animation: fade-in-delayed 1.0s ease-out 2.0s forwards, slide-up 1s ease-out 2.0s forwards;
+        }
+
+        /* --- STILE DEL CURSORE PERSONALIZZATO --- */
+        #custom-cursor {
+            position: fixed;
+            top: 0; left: 0;
+            width: 30px; /* Grandezza del cursore */
+            height: auto;
+            pointer-events: none; /* FONDAMENTALE: permette di cliccare attraverso l'immagine */
+            z-index: 10000; /* Sopra a tutto */
+            transform: translate(-50%, -50%); /* Centra il logo sulla punta del mouse */
+            transition: transform 0.1s ease-out; /* Movimento fluido */
+            display: none; /* Nascosto di default (appare via JS) */
+            
+            /* Filtro per renderlo luminoso e visibile sul nero */
+            filter: drop-shadow(0 0 5px rgba(220, 238, 106, 0.5));
+        }
+
+        /* Sui link, ingrandiamo leggermente il cursore per feedback */
+        body:has(a:hover) #custom-cursor, 
+        body:has(button:hover) #custom-cursor {
+            transform: translate(-50%, -50%) scale(1.3);
+        }
+        
+        /* Non mostrare il cursore custom su mobile */
+        @media (hover: none) {
+            #custom-cursor { display: none !important; }
+        }
+    </style>
+    <style>
+    /* Stile FAQ Dark Mode */
+    .faq-section {
+        background-color: #050505; /* Adattato al tuo sfondo */
+        color: #ffffff;
+        padding: 60px 20px;
+        font-family: 'Inter', sans-serif; /* Adattato al tuo font */
+        border-top: 1px solid #262626; /* Bordo come le altre sezioni */
+    }
+    .faq-container { max-width: 800px; margin: 0 auto; }
+    .faq-header { margin-bottom: 40px; }
+    .faq-header h2 { font-size: 3rem; margin: 0 0 10px 0; font-weight: 700; }
+    .faq-header p { color: #A0A0A0; font-size: 1.1rem; }
+    .faq-item {
+        background-color: #0F0F0F; /* Colore delle tue card */
+        border: 1px solid #262626;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        overflow: hidden;
+        transition: border-color 0.3s ease;
+    }
+    .faq-item:hover { border-color: #DCEE6A; /* Il tuo colore Lime */ }
+    .faq-question {
+        padding: 24px; cursor: pointer; display: flex;
+        justify-content: space-between; align-items: center;
+        font-weight: 600; font-size: 1.1rem; color: white;
+    }
+    .faq-answer {
+        max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out;
+        padding: 0 24px; color: #A0A0A0; line-height: 1.6;
+    }
+    .faq-item.active .faq-answer { padding-bottom: 24px; }
+    .faq-icon { font-size: 24px; transition: transform 0.3s ease; color: #666; }
+    .faq-item.active .faq-icon { transform: rotate(45deg); color: #DCEE6A; }
+</style>
+</head>
+<body class="antialiased selection:bg-pano-lime selection:text-black">
+
+    <!-- Password Protection Overlay -->
+    <div id="password-overlay" class="fixed inset-0 bg-pano-bg z-[10000] flex items-center justify-center" style="display: none;">
+        <div class="max-w-md w-full mx-4">
+            <!-- Logo -->
+            <div class="text-center mb-8">
+                <img src="PanoramicaChiaro.png" alt="Panoramica Solutions" class="h-12 mx-auto mb-6">
+                <h2 class="text-2xl md:text-3xl font-bold text-white mb-2">Work in Progress</h2>
+                <p class="text-pano-grey">Enter password to access</p>
+            </div>
+
+            <!-- Password Form -->
+            <div class="bg-pano-card border border-pano-border rounded-xl p-8 shadow-2xl">
+                <form id="password-form" class="space-y-6">
+                    <div>
+                        <label for="password-input" class="block text-sm font-medium text-gray-300 mb-2">
+                            Password
+                        </label>
+                        <input 
+                            type="password" 
+                            id="password-input" 
+                            class="w-full px-4 py-3 bg-pano-bg border border-pano-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-pano-lime focus:ring-2 focus:ring-pano-lime/20 transition"
+                            placeholder="Enter password"
+                            autocomplete="off"
+                        >
+                    </div>
+
+                    <div id="error-message" class="hidden text-red-400 text-sm text-center bg-red-500/10 border border-red-500/20 rounded-lg py-2">
+                        Incorrect password. Please try again.
+                    </div>
+
+                    <button 
+                        type="submit" 
+                        class="w-full px-6 py-3 bg-pano-lime text-black font-bold rounded-lg hover:bg-white transition shadow-[0_0_15px_rgba(220,238,106,0.4)] hover:shadow-[0_0_20px_rgba(220,238,106,0.6)]"
+                    >
+                        Access
+                    </button>
+                </form>
+            </div>
+
+            <!-- Footer Info -->
+            <div class="text-center mt-6 text-xs text-pano-grey">
+                <p>© 2026 Panoramica Solutions. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="intro-overlay">
+        <img src="hero-logo.png" alt="" class="intro-logo-wipe">
+    </div>
+<nav class="fixed w-full z-50 bg-black/90 backdrop-blur-md border-b border-[#222]">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between relative">
+            
+            <div class="flex-shrink-0 cursor-pointer z-20">
+                <a href="#">
+                    <img src="PanoramicaChiaro.png" alt="Panoramica" class="h-6 md:h-8 w-auto object-contain">
+                </a>
+            </div>
+
+<div class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-300 absolute left-1/2 -translate-x-1/2 mt-2">
+                
+                <a href="#" class="hover:text-white transition relative">Home</a>
+                
+                <div class="relative group">
+                    <a href="#" class="hover:text-white transition peer">Marketplace</a>
+                    
+                    <span class="absolute -top-2.5 left-1/2 -translate-x-1/2 px-1.5 py-[1px] bg-pano-lime text-black text-[7px] font-extrabold uppercase tracking-widest rounded-[2px] shadow-[0_0_6px_rgba(220,238,106,0.8)] pointer-events-none select-none whitespace-nowrap leading-tight">
+                        Beta
+                    </span>
+                </div>
+
+<a href="insights.html" class="hover:text-white transition relative">Insights</a>
+            </div>
+
+            <div class="hidden md:flex items-center gap-6 z-20">
+                <a href="#contact" class="text-sm font-medium text-white hover:text-pano-lime transition">
+                </a>
+                
+                <a href="https://meetings-eu1.hubspot.com/panoramica-solutions" target="_blank" 
+                   class="px-5 py-2.5 bg-pano-lime text-black font-bold text-sm rounded hover:bg-white transition shadow-[0_0_15px_rgba(220,238,106,0.4)] hover:shadow-[0_0_20px_rgba(220,238,106,0.6)]">
+                    Book Audit
+                </a>
+            </div>
+
+            <div class="flex items-center gap-4 md:hidden z-20">
+                <a href="https://meetings-eu1.hubspot.com/panoramica-solutions" target="_blank" 
+                   class="px-4 py-2 bg-pano-lime text-black font-bold text-xs rounded hover:bg-white transition shadow-[0_0_10px_rgba(220,238,106,0.4)]">
+                    Book Audit
+                </a>
+
+                <button id="mobile-menu-btn" class="text-white focus:outline-none p-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+<div id="mobile-menu" class="hidden md:hidden bg-black border-b border-[#222] absolute w-full left-0 top-20">
+            <div class="flex flex-col p-6 space-y-4 text-center">
+                <a href="#" class="text-gray-300 hover:text-white text-lg py-2 border-b border-[#222]">Home</a>
+                <a href="#" class="text-gray-300 hover:text-white text-lg py-2 border-b border-[#222]">Marketplace</a>
+                
+                <a href="insights.html" class="text-gray-300 hover:text-white text-lg py-2 border-b border-[#222]">Insights</a>
+                
+                <a href="#contact" class="text-gray-300 hover:text-white text-lg py-2">Contact</a>
+            </div>
+        </div>
+    </nav>
+<header class="relative pt-32 pb-20 overflow-hidden min-h-[85vh] flex items-center justify-center">
+        
+        <div class="absolute inset-0 bg-gradient-to-b from-black/90 via-black/20 to-black/90 z-0 pointer-events-none"></div>
+
+        <div class="relative max-w-4xl mx-auto px-4 md:px-6 text-center z-10 hero-content-delayed w-full">
+            
+            <div class="inline-block px-3 py-1 mb-6 border border-pano-border rounded-full text-[10px] md:text-xs text-pano-lime tracking-widest uppercase bg-pano-card/50 backdrop-blur-sm">
+                Revenue, by Design.
+            </div>
+            
+            <h1 class="text-4xl md:text-8xl font-bold leading-tight tracking-tight mb-6 md:mb-8 text-white drop-shadow-2xl">
+Growth without the Guesswork.
+            </h1>
+            
+            <p class="text-lg md:text-2xl text-pano-grey mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed font-light px-2">
+We install the operational layer that unifies your data, teams, and tech. Precise RevOps architecture designed for clarity.
+            </p>
+            
+<div class="flex flex-col md:flex-row gap-5 justify-center w-full md:w-auto px-4 md:px-0">
+                
+                <a href="chat.html" class="px-8 py-4 bg-pano-lime text-black font-bold rounded text-lg hover:scale-105 transition duration-300 shadow-[0_0_30px_rgba(220,238,106,0.25)] text-center">
+                    Start Here
+                </a>
+
+                <a href="#services" class="px-8 py-4 border border-pano-border text-white font-medium rounded text-lg hover:bg-pano-border hover:text-pano-lime transition backdrop-blur-sm bg-black/40 text-center">
+                    The Vault
+                </a>
+
+            </div>
+        </div>
+    </header>
+
+    <section id="problem" class="py-24 border-t border-pano-border bg-[#0a0a0a]">
+        <div class="max-w-7xl mx-auto px-6">
+            <h2 class="text-3xl font-bold mb-12">Growth Exposes Structural Inefficiency</h2>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="p-8 border border-pano-border bg-pano-card hover:border-pano-lime/50 transition duration-300 group">
+                    <div class="w-10 h-10 mb-6 border border-pano-border rounded flex items-center justify-center text-pano-lime group-hover:bg-pano-lime group-hover:text-black transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Departmental Silos</h3>
+                    <p class="text-pano-grey text-sm leading-relaxed">Marketing, Sales, and CS working with different goals. Broken handovers and revenue leakage.</p>
+                </div>
+                <div class="p-8 border border-pano-border bg-pano-card hover:border-pano-lime/50 transition duration-300 group">
+                    <div class="w-10 h-10 mb-6 border border-pano-border rounded flex items-center justify-center text-pano-lime group-hover:bg-pano-lime group-hover:text-black transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Chaotic Tech Stack</h3>
+                    <p class="text-pano-grey text-sm leading-relaxed">Tools multiply faster than revenue. Data fragments. Reporting becomes reconciliation.</p>
+                </div>
+                <div class="p-8 border border-pano-border bg-pano-card hover:border-pano-lime/50 transition duration-300 group">
+                    <div class="w-10 h-10 mb-6 border border-pano-border rounded flex items-center justify-center text-pano-lime group-hover:bg-pano-lime group-hover:text-black transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Guesswork Forecasting</h3>
+                    <p class="text-pano-grey text-sm leading-relaxed">When data can’t be trusted, forecasts turn into opinions and decisions into bets.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="solution" class="pt-10 pb-24 border-t border-pano-border">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center gap-16">
+            <div class="md:w-1/2">
+              <h2 class="text-4xl md:text-6xl font-bold text-white">
+    <span class="text-pano-lime">Systems</span> over Services.
+</h2>
+                <p class="text-pano-grey mb-8 leading-relaxed">
+                    RevOps isn’t fixing tools.
+It’s designing how revenue actually flows.<br /> We connect every touchpoint - from first signal to renewal - into a single operating system that scales without friction.
+                </p>
+                <ul class="space-y-4">
+                    <li class="flex items-center gap-3 text-white">
+                        <span class="text-pano-lime">✓</span> GTM alignment across teams
+                    </li>
+                    <li class="flex items-center gap-3 text-white">
+                        <span class="text-pano-lime">✓</span> Revenue data you can trust
+                    </li>
+                    <li class="flex items-center gap-3 text-white">
+                        <span class="text-pano-lime">✓</span> Automation that survives growth
+                    </li>
+                </ul>
+            </div>
+<div class="md:w-1/2 mt-12 md:mt-0 flex justify-center h-[400px]"> <div class="absolute inset-0 bg-pano-lime/5 blur-[80px] rounded-full"></div>
+                
+                <div class="relative w-full max-w-md h-full border border-pano-border rounded-2xl bg-[url('aligned.png')] bg-cover bg-center shadow-xl overflow-hidden">
+                    </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="services" class="py-24 border-t border-pano-border bg-[#0a0a0a]">
+        <div class="max-w-5xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold">Panoramica Services</h2>
+                <p class="text-pano-grey mt-4">Surgical interventions for your revenue system</p>
+            </div>
+            <div class="space-y-6">
+                
+                <div class="group border border-pano-border rounded-xl p-8 hover:bg-white/5 transition duration-300 cursor-pointer">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                        
+                        <div class="md:col-span-5">
+                            <span class="text-pano-lime text-xs font-mono mb-2 block">01</span>
+                            <h3 class="text-2xl text-white font-bold group-hover:text-pano-lime transition">
+                                The Revenue Diagnostic
+                            </h3>
+                        </div>
+                        
+                        <div class="md:col-span-6">
+                            <p class="text-pano-grey text-base leading-relaxed">
+                                Deep analysis of tech stack and processes. The executive blueprint for growth.
+                            </p>
+                        </div>
+                        
+                        <div class="md:col-span-1 flex justify-end">
+                            <svg class="w-6 h-6 text-pano-lime transform group-hover:translate-x-2 transition duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="group border border-pano-border rounded-xl p-8 hover:bg-white/5 transition duration-300 cursor-pointer">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                        
+                        <div class="md:col-span-5">
+                            <span class="text-pano-lime text-xs font-mono mb-2 block">02</span>
+                            <h3 class="text-2xl text-white font-bold group-hover:text-pano-lime transition">
+                                The Unified Backbone
+                            </h3>
+                        </div>
+                        
+                        <div class="md:col-span-6">
+                            <p class="text-pano-grey text-base leading-relaxed">
+                                Expert CRM configuration (HubSpot/Salesforce) and integrations. We make your systems talk.
+                            </p>
+                        </div>
+                        
+                        <div class="md:col-span-1 flex justify-end">
+                            <svg class="w-6 h-6 text-pano-lime transform group-hover:translate-x-2 transition duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="group border border-pano-border rounded-xl p-8 hover:bg-white/5 transition duration-300 cursor-pointer">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                        
+                        <div class="md:col-span-5">
+                            <span class="text-pano-lime text-xs font-mono mb-2 block">03</span>
+                            <h3 class="text-2xl text-white font-bold group-hover:text-pano-lime transition">
+                                The Velocity Engine
+                            </h3>
+                        </div>
+                        
+                        <div class="md:col-span-6">
+                            <p class="text-pano-grey text-base leading-relaxed">
+                               Automated workflows that eliminate manual work and accelerate time-to-revenue.
+                            </p>
+                        </div>
+                        
+                        <div class="md:col-span-1 flex justify-end">
+                            <svg class="w-6 h-6 text-pano-lime transform group-hover:translate-x-2 transition duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+    </section>
+<section class="py-24 relative overflow-hidden flex items-center justify-center">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-pano-lime/20 blur-[120px] rounded-full pointer-events-none"></div>
+        <div class="relative z-10 text-center px-6">
+            <h2 class="text-4xl md:text-5xl font-bold text-white mb-6">
+                Ready to Scale?
+            </h2>
+            <p class="text-pano-grey text-xl mb-10 max-w-2xl mx-auto">
+                Stop guessing. Start engineering your revenue with Panoramica Solutions.
+            </p>
+            <a href="https://meetings-eu1.hubspot.com/panoramica-solutions" target="_blank" class="inline-block px-10 py-5 bg-pano-lime text-black font-bold text-xl rounded hover:scale-105 transition duration-300 shadow-[0_0_40px_rgba(220,238,106,0.3)]">
+                Book Your Consultation
+            </a>
+        </div>
+    </section>
+<div class="faq-section">
+        <div class="faq-container">
+            <div class="faq-header">
+                <h2>FAQs</h2>
+                <p>Answers to common questions about our ops engineering solutions</p>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">What does Panoramica actually do? <span class="faq-icon">+</span></div>
+                <div class="faq-answer">
+                    <p>
+                        We help businesses replace ad-hoc execution with systems that run consistently.
+                        <br><br>
+                        Our work focuses on how customers are acquired, how work moves through the organisation, and how decisions are made. We take what is currently implicit or fragmented and turn it into clear, documented operating logic that teams can follow without constant supervision.
+                        <br><br>
+                        The outcome is simpler execution, fewer handovers, and better use of time and data across the business.
+                    </p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">What do you mean by “designing systems”? <span class="faq-icon">+</span></div>
+                <div class="faq-answer">
+                    <p>
+                        A system is a defined way of operating that produces the same result without relying on individual judgement.
+                        <br><br>
+                        In practice, this often includes clarifying your ideal customer profile, structuring your channel mix, defining lifecycle stages and decision gates, and setting rules for ownership and handovers. We also decide which metrics actually matter at each stage and design workflows around them.
+                        <br><br>
+                        Instead of people deciding what to do next, the system makes that decision clear.
+                    </p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">How do you make this measurable? <span class="faq-icon">+</span></div>
+                <div class="faq-answer">
+                    <p>
+                        Every engagement starts with a baseline.
+                        <br><br>
+                        Before building anything, we identify the metrics that reflect how the business is really performing. This may include conversion rates between stages, time to response, cycle time per process, or pipeline accuracy. Once systems are implemented, we track changes against those baselines.
+                        <br><br>
+                        The goal is not more dashboards, but fewer surprises and more predictable outcomes.
+                    </p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">How fast can we expect to see results? <span class="faq-icon">+</span></div>
+                <div class="faq-answer">
+                    <p>
+                        Most clients see meaningful improvements within the first 30 days.
+                        <br><br>
+                        Early gains usually come from clearer workflows, reduced manual work, or faster decision-making. Over 8 to 12 weeks, this typically translates into more consistent execution, better visibility across teams, and improved performance against core metrics.
+                        <br><br>
+                        We optimise for progress you can feel quickly, not long transformation programmes.
+                    </p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Who is Panoramica best suited for? <span class="faq-icon">+</span></div>
+                <div class="faq-answer">
+                    <p>
+                        We primarily work with SaaS and financial services businesses, where complexity, compliance, and scale demand disciplined operations.
+                        <br><br>
+                        That said, we are open to working with adjacent industries facing similar challenges, particularly where teams, tools, and data are no longer aligned. If your business is growing but operational clarity is lagging behind, the work is usually a strong fit.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+<footer class="border-t border-pano-border bg-black text-white pt-20 pb-10">
+    <div class="max-w-7xl mx-auto px-6">
+        
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-20 gap-8">
+            <div class="max-w-md">
+                <h3 class="text-xl font-bold text-white mb-2">Stay ahead with insights</h3>
+                <p class="text-pano-grey text-sm">Get our latest operational engineering strategies directly to your inbox.</p>
+            </div>
+            
+            <form id="newsletter-form" class="flex w-full md:w-auto gap-3">
+                <input type="email" placeholder="Enter your email" required 
+                       class="bg-[#111] border border-[#333] text-white px-4 py-3 rounded w-full md:w-80 focus:outline-none focus:border-pano-lime transition placeholder-gray-600 text-sm">
+                <button type="submit" 
+                        class="bg-[#222] hover:bg-pano-lime hover:text-black text-white px-6 py-3 rounded font-medium text-sm transition duration-300 border border-[#333] hover:border-pano-lime whitespace-nowrap">
+                    Subscribe
+                </button>
+            </form>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-10 md:gap-4 mb-20">
+            
+            <div class="col-span-2 md:col-span-2">
+                <a href="#" class="block">
+                    <img src="PanoramicaChiaro.png" alt="Panoramica Solutions" class="h-8 md:h-10 w-auto opacity-90 hover:opacity-100 transition object-contain">
+                </a>
+            </div>
+
+            <div class="col-span-1">
+                <h4 class="font-bold mb-6 text-sm">Quick links</h4>
+                <ul class="space-y-4 text-sm text-pano-grey">
+                    <li><a href="#" class="hover:text-pano-lime transition">Home</a></li>
+                    <li><a href="#services" class="hover:text-pano-lime transition">Solutions</a></li>
+                    <li><a href="#" class="hover:text-pano-lime transition">Industries</a></li>
+                    <li><a href="#" class="hover:text-pano-lime transition">Insights</a></li>
+                    <li><a href="#" class="hover:text-pano-lime transition">Contact</a></li>
+                    <li><a href="https://meetings-eu1.hubspot.com/panoramica-solutions" class="hover:text-pano-lime transition">Book call</a></li>
+                </ul>
+            </div>
+
+            <div class="col-span-1">
+                <h4 class="font-bold mb-6 text-sm">Resources</h4>
+                <ul class="space-y-4 text-sm text-pano-grey">
+                    <li><a href="#" class="hover:text-pano-lime transition">Case studies</a></li>
+                    <li><a href="#" class="hover:text-pano-lime transition">Blog</a></li>
+                    <li><a href="#" class="hover:text-pano-lime transition">Guides</a></li>
+                    <li><a href="#" class="hover:text-pano-lime transition">Metrics</a></li>
+                    <li><a href="#" class="hover:text-pano-lime transition">Reports</a></li>
+                </ul>
+            </div>
+
+            <div class="col-span-1">
+                <h4 class="font-bold mb-6 text-sm">Company</h4>
+                <ul class="space-y-4 text-sm text-pano-grey">
+                    <li><a href="#" class="hover:text-pano-lime transition">About us</a></li>
+                    <li><a href="#" class="hover:text-pano-lime transition">Team</a></li>
+                    <li><a href="#" class="hover:text-pano-lime transition">Careers</a></li>
+                    <li><a href="#" class="hover:text-pano-lime transition">Partners</a></li>
+                    <li><a href="#" class="hover:text-pano-lime transition">Contact</a></li>
+                </ul>
+            </div>
+
+            <div class="col-span-1">
+                <h4 class="font-bold mb-6 text-sm">Connect</h4>
+                <ul class="space-y-4 text-sm text-pano-grey">
+                    <li><a href="#" class="hover:text-pano-lime transition">LinkedIn</a></li>
+                    <li><a href="#" class="hover:text-pano-lime transition">Twitter</a></li>
+                    <li><a href="#" class="hover:text-pano-lime transition">GitHub</a></li>
+                    <li><a href="#" class="hover:text-pano-lime transition">Medium</a></li>
+                    <li><a href="#" class="hover:text-pano-lime transition">YouTube</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="border-t border-[#222] pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex flex-col md:flex-row items-center gap-4 md:gap-8 text-xs text-pano-grey">
+                <span>&copy; 2026 Panoramica Solutions. All rights reserved.</span>
+                <div class="flex gap-6">
+                    <a href="/privacy.html" class="hover:text-white transition">Privacy policy</a>
+                    <a href="/terms.html" class="hover:text-white transition">Terms and Conditions</a>
+                    <a href="#" class="hover:text-white transition">Cookie settings</a>
+                </div>
+            </div>
+            <div class="flex gap-5 text-white">
+                <a href="#" class="hover:text-pano-lime transition"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
+                <a href="#" class="hover:text-pano-lime transition"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>
+                <a href="#" class="hover:text-pano-lime transition"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg></a>
+                <a href="#" class="hover:text-pano-lime transition"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
+            </div>
+        </div>
+    </div>
+</footer>
+    <div id="custom-cursor">
+        <img src="hero-logo.png" alt="" class="w-full h-full object-contain">
+    </div>
+
+    <script>
+        const cursor = document.getElementById('custom-cursor');
+        
+        // Controlla se siamo su un dispositivo con mouse (non touch)
+        if (window.matchMedia("(pointer: fine)").matches) {
+            
+            // Mostra il cursore custom
+            cursor.style.display = 'block';
+
+            // Aggiorna la posizione al movimento
+            document.addEventListener('mousemove', (e) => {
+                cursor.style.left = e.clientX + 'px';
+                cursor.style.top = e.clientY + 'px';
+            });
+
+            // Gestisce quando il mouse esce dalla finestra
+            document.addEventListener('mouseleave', () => {
+                cursor.style.opacity = '0';
+            });
+            document.addEventListener('mouseenter', () => {
+                cursor.style.opacity = '1';
+            });
+        }
+    </script>
+    <div style="text-align: center; padding: 20px; font-family: sans-serif; font-size: 12px; color: #666;">
+</div>
+    <script>
+    document.querySelectorAll('.faq-question').forEach(item => {
+        item.addEventListener('click', () => {
+            const parent = item.parentElement;
+            const answer = parent.querySelector('.faq-answer');
+            
+            document.querySelectorAll('.faq-item').forEach(child => {
+                if (child !== parent) {
+                    child.classList.remove('active');
+                    child.querySelector('.faq-answer').style.maxHeight = null;
+                }
+            });
+
+            parent.classList.toggle('active');
+            if (parent.classList.contains('active')) {
+                answer.style.maxHeight = answer.scrollHeight + "px";
+            } else {
+                answer.style.maxHeight = null;
+            }
+        });
+    });
+</script>
+<script>
+    // Newsletter Simulation Script
+    const form = document.getElementById('newsletter-form');
+    form.addEventListener('submit', (e) => {
+        e.preventDefault(); // Impedisce il ricaricamento della pagina
+        const btn = form.querySelector('button');
+        const input = form.querySelector('input');
+        
+        // Cambio stato visivo (Loading)
+        const originalText = btn.innerText;
+        btn.innerText = "Joining...";
+        btn.style.opacity = "0.7";
+        
+        // Simulazione ritardo di rete (1 secondo)
+        setTimeout(() => {
+            // Successo!
+            btn.innerText = "Subscribed!";
+            btn.classList.remove('bg-[#222]', 'text-white');
+            btn.classList.add('bg-pano-lime', 'text-black', 'border-pano-lime');
+            input.value = ""; // Pulisce il campo
+            
+            // Reset dopo 3 secondi
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.classList.remove('bg-pano-lime', 'text-black', 'border-pano-lime');
+                btn.classList.add('bg-[#222]', 'text-white');
+                btn.style.opacity = "1";
+            }, 3000);
+        }, 1000);
+    });
+</script>
+
+<!-- Password Protection Script -->
+<script>
+    (function() {
+        const CORRECT_PASSWORD = 'PanoramicaSolutionsLolloGiulio2026';
+        const STORAGE_KEY = 'panoramica_auth';
+        const overlay = document.getElementById('password-overlay');
+        const form = document.getElementById('password-form');
+        const input = document.getElementById('password-input');
+        const errorMsg = document.getElementById('error-message');
+
+        // Controlla se l'utente è già autenticato in questa sessione
+        function isAuthenticated() {
+            return sessionStorage.getItem(STORAGE_KEY) === 'true';
+        }
+
+        // Mostra l'overlay se non autenticato
+        function checkAuth() {
+            if (!isAuthenticated()) {
+                overlay.style.display = 'flex';
+                // Disabilita lo scroll quando l'overlay è visibile
+                document.body.style.overflow = 'hidden';
+                // Focus sul campo password
+                setTimeout(() => input.focus(), 100);
+            } else {
+                overlay.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        }
+
+        // Gestisci il submit del form
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const enteredPassword = input.value;
+
+            if (enteredPassword === CORRECT_PASSWORD) {
+                // Password corretta
+                sessionStorage.setItem(STORAGE_KEY, 'true');
+                
+                // Animazione di uscita
+                overlay.style.opacity = '1';
+                overlay.style.transition = 'opacity 0.5s ease-out';
+                overlay.style.opacity = '0';
+                
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    document.body.style.overflow = '';
+                }, 500);
+            } else {
+                // Password errata
+                errorMsg.classList.remove('hidden');
+                input.value = '';
+                input.classList.add('border-red-500');
+                
+                // Shake effect
+                form.style.animation = 'shake 0.5s';
+                setTimeout(() => {
+                    form.style.animation = '';
+                    input.classList.remove('border-red-500');
+                }, 500);
+            }
+        });
+
+        // Nascondi messaggio errore quando l'utente inizia a digitare
+        input.addEventListener('input', function() {
+            errorMsg.classList.add('hidden');
+        });
+
+        // Aggiungi animazione shake
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-10px); }
+                75% { transform: translateX(10px); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Esegui il controllo all'avvio
+        checkAuth();
+
+        // Previeni il bypass tramite console
+        Object.defineProperty(window, STORAGE_KEY, {
+            get: function() { return undefined; },
+            set: function() { return false; }
+        });
+    })();
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

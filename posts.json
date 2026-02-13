@@ -1,0 +1,20 @@
+[
+  {
+    "id": "revops-strategy-2026",
+    "title": "The Death of the Funnel: Why Flywheels Win",
+    "date": "Jan 24, 2026",
+    "category": "Strategy",
+    "image": "https://images.unsplash.com/photo-1639322537228-ad7117a7a66b?q=80&w=1000&auto=format&fit=crop",
+    "excerpt": "Traditional funnels fail to capture the compounding value of customer retention. Here is how to engineer a revenue flywheel.",
+    "content": "<p>Revenue Operations is no longer about just fixing the funnel. It is about creating a self-sustaining loop...</p><h2>Why the Funnel is Broken</h2><p>In the traditional model, energy is lost at every stage...</p>"
+  },
+  {
+    "id": "hubspot-vs-salesforce",
+    "title": "HubSpot vs Salesforce: The 2026 Verdict",
+    "date": "Jan 10, 2026",
+    "category": "Tech Stack",
+    "image": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1000&auto=format&fit=crop",
+    "excerpt": "Choosing your CRM is the most expensive decision you will make this year. We break down the pros and cons for scaling SaaS.",
+    "content": "<p>The debate continues. But with recent AI updates, the gap is closing...</p>"
+  }
+]

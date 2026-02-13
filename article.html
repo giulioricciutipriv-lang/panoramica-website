@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Article - Panoramica Solutions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { 'pano-bg': '#050505', 'pano-lime': '#DCEE6A', 'pano-grey': '#A0A0A0', 'pano-border': '#262626' },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #050505; color: #e0e0e0; }
+        /* Stile del contenuto dell'articolo */
+        .prose h2 { color: white; font-size: 1.8rem; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem; }
+        .prose p { margin-bottom: 1.2rem; line-height: 1.8; color: #A0A0A0; font-size: 1.1rem; }
+        .prose strong { color: #DCEE6A; }
+    </style>
+    <script src="auth-check.js"></script>
+</head>
+<body class="antialiased">
+
+    <nav class="fixed w-full z-50 bg-black/90 backdrop-blur-md border-b border-[#222]">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <a href="index.html"><img src="PanoramicaChiaro.png" alt="Panoramica" class="h-6 md:h-8 w-auto object-contain"></a>
+            <a href="insights.html" class="text-sm text-pano-grey hover:text-white transition">← Back to Insights</a>
+        </div>
+    </nav>
+
+    <article class="pt-32 pb-24 px-6">
+        <div class="max-w-3xl mx-auto">
+            <div class="flex items-center gap-4 mb-6 text-sm">
+                <span id="post-category" class="text-pano-lime font-bold uppercase tracking-widest">Category</span>
+                <span class="text-pano-border">|</span>
+                <span id="post-date" class="text-pano-grey">Date</span>
+            </div>
+
+            <h1 id="post-title" class="text-3xl md:text-5xl font-bold text-white mb-10 leading-tight">Loading...</h1>
+
+            <div class="w-full h-[400px] rounded-xl overflow-hidden mb-12 border border-pano-border">
+                <img id="post-image" src="" alt="" class="w-full h-full object-cover">
+            </div>
+
+            <div id="post-content" class="prose max-w-none">
+                </div>
+        </div>
+    </article>
+
+    <script>
+        // Prende l'ID dall'URL (es: article.html?id=revops-101)
+        const params = new URLSearchParams(window.location.search);
+        const postId = params.get('id');
+
+        fetch('posts.json')
+            .then(response => response.json())
+            .then(posts => {
+                const post = posts.find(p => p.id === postId);
+                if (post) {
+                    document.title = post.title + " - Panoramica";
+                    document.getElementById('post-category').innerText = post.category;
+                    document.getElementById('post-date').innerText = post.date;
+                    document.getElementById('post-title').innerText = post.title;
+                    document.getElementById('post-image').src = post.image;
+                    document.getElementById('post-content').innerHTML = post.content;
+                } else {
+                    document.getElementById('post-title').innerText = "Article not found";
+                }
+            });
+    </script>
+</body>
+</html>
