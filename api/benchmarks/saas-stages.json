@@ -1,0 +1,235 @@
+{
+  "meta": {
+    "version": "1.0",
+    "sources": [
+      "KBCM Technology Group SaaS Survey 2024-2025",
+      "OpenView Partners Benchmarks 2024",
+      "SaaStr Annual Data 2024-2025",
+      "Statista B2B SaaS Market 2025-2026",
+      "Pavilion BenchSights 2024-2025",
+      "Bessemer Cloud Index",
+      "T2D3 Framework (Neeraj Agrawal)"
+    ],
+    "lastUpdated": "2025-12"
+  },
+
+  "stages": {
+    "pre_seed_idea": {
+      "label": "Pre-Seed / Idea",
+      "aliases": ["pre-seed", "idea", "pre-revenue", "concept"],
+      "revenue": { "min": 0, "max": 10000, "currency": "EUR", "period": "monthly" },
+      "team": { "min": 1, "max": 5 },
+      "benchmarks": {
+        "burnMultiple": { "median": null, "note": "Not applicable — pre-revenue" },
+        "cac": { "median": null, "note": "Focus on design partners, not paid acquisition" },
+        "ltv": { "median": null, "note": "Not yet measurable" },
+        "churnMonthly": { "median": null, "note": "Too early to measure" },
+        "salesCycleDays": { "median": null, "note": "Design partner conversations, not sales" },
+        "magicNumber": { "median": null, "note": "Not applicable" },
+        "revenuePerEmployee": { "median": null, "note": "Not applicable" },
+        "netRevenueRetention": { "median": null, "note": "Not enough data" },
+        "ruleOf40": { "median": null, "note": "Not applicable at this stage" }
+      },
+      "playbook": {
+        "focus": "Problem validation, MVP, first 10 design partners",
+        "salesApproach": "Founder-led conversations, not sales process",
+        "techStack": ["Notion or Google Sheets (CRM)", "Calendly", "Loom", "Slack"],
+        "keyMetrics": ["Number of discovery calls", "Problem-solution fit signals", "LOI/design partner count"],
+        "antiPatterns": [
+          "Buying enterprise CRM (Salesforce/HubSpot Pro)",
+          "Hiring salespeople before product-market fit",
+          "Running paid acquisition campaigns",
+          "Building complex automation workflows",
+          "Spending on brand/PR before finding ICP"
+        ],
+        "recommendedActions": [
+          "Run 50+ problem-discovery interviews",
+          "Build MVP with <3 month runway",
+          "Find 3-5 design partners willing to pay",
+          "Validate willingness-to-pay before building features"
+        ],
+        "budgetGuidance": {
+          "totalMonthlyBurn": { "max": 5000, "currency": "EUR" },
+          "toolSpend": { "max": 200, "currency": "EUR", "period": "monthly" },
+          "marketingSpend": { "max": 0, "note": "No paid marketing at this stage" }
+        }
+      }
+    },
+
+    "seed_startup": {
+      "label": "Seed / Startup",
+      "aliases": ["seed", "startup", "early", "pre-series-a"],
+      "revenue": { "min": 1000, "max": 100000, "currency": "EUR", "period": "monthly" },
+      "team": { "min": 3, "max": 20 },
+      "benchmarks": {
+        "burnMultiple": { "good": 1.5, "median": 2.5, "bad": 4.0, "source": "Bessemer" },
+        "cac": { "median": 5000, "good": 2000, "bad": 15000, "currency": "EUR", "source": "KBCM" },
+        "ltv": { "median": 15000, "good": 30000, "currency": "EUR", "note": "LTV:CAC should be >3:1" },
+        "churnMonthly": { "median": 5.0, "good": 3.0, "bad": 8.0, "unit": "percent", "source": "KBCM" },
+        "salesCycleDays": { "median": 30, "good": 14, "bad": 60, "source": "OpenView" },
+        "magicNumber": { "median": 0.5, "good": 0.75, "source": "SaaStr" },
+        "revenuePerEmployee": { "median": 80000, "good": 120000, "currency": "EUR", "source": "BenchSights" },
+        "netRevenueRetention": { "median": 95, "good": 110, "unit": "percent", "source": "KBCM" },
+        "ruleOf40": { "median": 20, "good": 40, "note": "Growth rate + profit margin", "source": "Bessemer" },
+        "grossMargin": { "median": 70, "good": 80, "unit": "percent", "source": "KBCM" },
+        "winRate": { "median": 20, "good": 30, "unit": "percent", "source": "KBCM" },
+        "avgDealSize": { "median": 5000, "good": 10000, "currency": "EUR", "source": "OpenView" },
+        "paybackMonths": { "median": 18, "good": 12, "bad": 24, "source": "KBCM" }
+      },
+      "playbook": {
+        "focus": "Product-market fit validation, repeatable sales motion, first hire",
+        "salesApproach": "Founder-led sales, transitioning to first AE",
+        "techStack": ["HubSpot Free/Starter", "Apollo.io", "Notion", "Slack", "Calendly", "Loom"],
+        "keyMetrics": ["MRR + growth rate", "Churn rate", "CAC:LTV", "Time to close", "Logo count"],
+        "antiPatterns": [
+          "Building sales team before repeatable motion",
+          "Enterprise pricing before validation",
+          "Complex multi-stage sales process",
+          "ABM campaigns without clear ICP",
+          "Hiring VP Sales before $500K ARR"
+        ],
+        "recommendedActions": [
+          "Document the founder's sales playbook",
+          "Implement basic CRM hygiene",
+          "Build ICP definition from first 10-20 customers",
+          "Establish pricing based on value metric",
+          "Create basic sales collateral (case studies, one-pager)"
+        ],
+        "budgetGuidance": {
+          "totalMonthlyBurn": { "max": 50000, "currency": "EUR" },
+          "toolSpend": { "max": 1000, "currency": "EUR", "period": "monthly" },
+          "marketingSpend": { "max": 3000, "currency": "EUR", "period": "monthly" }
+        }
+      }
+    },
+
+    "early_scale": {
+      "label": "Early Scale",
+      "aliases": ["series-a", "growth", "scaling", "early-scale"],
+      "revenue": { "min": 50000, "max": 500000, "currency": "EUR", "period": "monthly" },
+      "team": { "min": 15, "max": 100 },
+      "benchmarks": {
+        "burnMultiple": { "good": 1.0, "median": 1.8, "bad": 3.0, "source": "Bessemer" },
+        "cac": { "median": 12000, "good": 6000, "bad": 25000, "currency": "EUR", "source": "KBCM" },
+        "ltv": { "median": 50000, "good": 100000, "currency": "EUR", "source": "KBCM" },
+        "churnMonthly": { "median": 3.0, "good": 1.5, "bad": 5.0, "unit": "percent", "source": "KBCM" },
+        "salesCycleDays": { "median": 45, "good": 30, "bad": 90, "source": "KBCM" },
+        "magicNumber": { "median": 0.7, "good": 1.0, "source": "SaaStr" },
+        "revenuePerEmployee": { "median": 120000, "good": 200000, "currency": "EUR", "source": "BenchSights" },
+        "netRevenueRetention": { "median": 105, "good": 120, "unit": "percent", "source": "KBCM" },
+        "ruleOf40": { "median": 30, "good": 50, "source": "Bessemer" },
+        "grossMargin": { "median": 75, "good": 85, "unit": "percent", "source": "KBCM" },
+        "winRate": { "median": 25, "good": 35, "unit": "percent", "source": "KBCM" },
+        "avgDealSize": { "median": 15000, "good": 30000, "currency": "EUR", "source": "OpenView" },
+        "paybackMonths": { "median": 15, "good": 10, "bad": 20, "source": "KBCM" },
+        "aeCap": { "median": 500000, "good": 800000, "currency": "EUR", "note": "ARR capacity per AE", "source": "BenchSights" },
+        "sdrsPerAe": { "median": 1.5, "good": 2.0, "source": "BenchSights" }
+      },
+      "playbook": {
+        "focus": "Scalable sales motion, demand gen engine, unit economics optimization",
+        "salesApproach": "Sales team with defined process, SDR→AE→CSM handoffs",
+        "techStack": ["HubSpot Pro/Enterprise or Salesforce", "Apollo + LinkedIn Sales Nav", "Gong or Chorus", "Marketo/Pardot or HubSpot Marketing", "Clari or Forecastable", "ChurnZero or Gainsight"],
+        "keyMetrics": ["ARR + growth rate", "Net Revenue Retention", "CAC payback", "Magic Number", "Pipeline coverage (3x+)", "Win rate by segment"],
+        "antiPatterns": [
+          "Scaling spend before proving unit economics",
+          "No pipeline coverage ratio tracking",
+          "Founder still closing >30% of deals",
+          "No sales process documentation",
+          "Growing headcount without quota attainment data"
+        ],
+        "recommendedActions": [
+          "Implement MEDDPICC or similar qualification",
+          "Build SDR playbook with sequences",
+          "Document and optimize sales stages",
+          "Establish QBR cadence with customers",
+          "Build customer health score model",
+          "Hire first RevOps analyst"
+        ],
+        "budgetGuidance": {
+          "totalMonthlyBurn": { "max": 300000, "currency": "EUR" },
+          "toolSpend": { "max": 8000, "currency": "EUR", "period": "monthly" },
+          "marketingSpend": { "max": 25000, "currency": "EUR", "period": "monthly" }
+        }
+      }
+    },
+
+    "expansion_enterprise": {
+      "label": "Expansion / Enterprise",
+      "aliases": ["series-b", "series-c", "enterprise", "expansion", "mature"],
+      "revenue": { "min": 300000, "max": null, "currency": "EUR", "period": "monthly" },
+      "team": { "min": 50, "max": null },
+      "benchmarks": {
+        "burnMultiple": { "good": 0.8, "median": 1.3, "bad": 2.0, "source": "Bessemer" },
+        "cac": { "median": 25000, "good": 15000, "bad": 50000, "currency": "EUR", "source": "KBCM" },
+        "ltv": { "median": 150000, "good": 300000, "currency": "EUR", "source": "KBCM" },
+        "churnMonthly": { "median": 1.5, "good": 0.5, "bad": 3.0, "unit": "percent", "source": "KBCM" },
+        "salesCycleDays": { "median": 90, "good": 60, "bad": 180, "source": "KBCM" },
+        "magicNumber": { "median": 0.8, "good": 1.2, "source": "SaaStr" },
+        "revenuePerEmployee": { "median": 200000, "good": 300000, "currency": "EUR", "source": "BenchSights" },
+        "netRevenueRetention": { "median": 115, "good": 130, "unit": "percent", "source": "KBCM" },
+        "ruleOf40": { "median": 40, "good": 60, "source": "Bessemer" },
+        "grossMargin": { "median": 78, "good": 85, "unit": "percent", "source": "KBCM" },
+        "winRate": { "median": 25, "good": 35, "unit": "percent", "source": "KBCM" },
+        "avgDealSize": { "median": 50000, "good": 100000, "currency": "EUR", "source": "OpenView" },
+        "paybackMonths": { "median": 12, "good": 8, "bad": 18, "source": "KBCM" },
+        "aeCap": { "median": 800000, "good": 1200000, "currency": "EUR", "source": "BenchSights" },
+        "sdrsPerAe": { "median": 2.0, "good": 2.5, "source": "BenchSights" },
+        "csmToArrRatio": { "median": 2000000, "good": 3000000, "currency": "EUR", "note": "ARR per CSM", "source": "BenchSights" }
+      },
+      "playbook": {
+        "focus": "Multi-segment GTM, international expansion, IPO readiness",
+        "salesApproach": "Segmented teams (SMB/MM/Enterprise), channel partnerships",
+        "techStack": ["Salesforce Enterprise", "Outreach or SalesLoft", "Gong", "Marketo or 6sense", "Clari", "Gainsight", "LeanData", "Tableau/Looker"],
+        "keyMetrics": ["ARR + NRR", "Rule of 40", "CAC payback by segment", "Pipeline generation by source", "Quota attainment distribution", "GRR + NRR by cohort"],
+        "antiPatterns": [
+          "Single GTM motion for all segments",
+          "No segmented pricing/packaging",
+          "RevOps team <3% of revenue org headcount",
+          "No formal QBR process with strategic accounts",
+          "Manual forecasting without tool support"
+        ],
+        "recommendedActions": [
+          "Build RevOps function (3-5% of revenue team)",
+          "Implement ABM for enterprise tier",
+          "Build partner/channel program",
+          "Establish expansion playbook (land-and-expand)",
+          "Implement advanced forecasting (commit-based)",
+          "Build customer advisory board"
+        ],
+        "budgetGuidance": {
+          "totalMonthlyBurn": { "max": null, "note": "Scale-dependent" },
+          "toolSpend": { "max": 30000, "currency": "EUR", "period": "monthly" },
+          "marketingSpend": { "max": 100000, "currency": "EUR", "period": "monthly" }
+        }
+      }
+    }
+  },
+
+  "marketContext2026": {
+    "globalSaaSMarket": {
+      "size": "$340B+",
+      "growthRate": "12-14% CAGR",
+      "source": "Statista 2025-2026 projection"
+    },
+    "b2bBuyingBehavior": {
+      "avgStakeholders": 11,
+      "selfServePreference": "72% prefer self-serve research before talking to sales",
+      "source": "Gartner 2025"
+    },
+    "revOpsAdoption": {
+      "companiesWithRevOps": "48%",
+      "revOpsTeamGrowth": "35% YoY",
+      "avgRevOpsTeamSize": 4.2,
+      "source": "Pavilion/BenchSights 2025"
+    },
+    "aiImpact": {
+      "companiesUsingAIinSales": "65%",
+      "productivityGain": "25-40% for SDR prospecting",
+      "source": "McKinsey 2025"
+    },
+    "benchmarkingServices": {
+      "revOpsAuditCost": { "low": 5000, "high": 25000, "currency": "EUR", "note": "Typical RevOps audit pricing from agencies (Clutch/G2 data)" },
+      "strategicConsultingDayRate": { "low": 1500, "high": 4000, "currency": "EUR", "source": "Clutch 2025" }
+    }
+  }
+}

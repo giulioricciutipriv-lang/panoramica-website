@@ -1,18 +1,18 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// REVENUE ARCHITECT v11 — DEFINITIVE BACKEND
+// REVENUE ARCHITECT v12 — STAGE-AWARE + STRATEGIC NARRATIVE
 //
-// Root causes of v10 bugs:
-// 1. Context loss: LLM received frontend `history` (stringified JSON blobs)
-//    instead of a clean human-readable transcript → NOW we build a clean
-//    transcript server-side in session.transcript[]
-// 2. Duplicate questions: LLM couldn't see its OWN previous message →
-//    NOW the full transcript is injected, including AI messages
-// 3. Phase too fast: threshold was N-1 items → NOW requires ALL items
-//    PLUS minimum turn counts per phase
-// 4. Confidence jumped to 40% in 3 turns → NOW scaled across 20+ fields
-//    with weighted scoring
-// 5. Conversation too short: only ~12 steps → NOW each phase has mandatory
-//    depth questions that go beyond surface-level answers
+// v12 additions over v11:
+// 1. Stage-Awareness: companyStage drives playbook selection, benchmark
+//    injection, and anti-pattern detection. Prevents recommending
+//    enterprise-grade tools to 2-person pre-revenue startups.
+// 2. Pre-Analysis Guardrail: Feasibility checks flag contradictions
+//    (e.g. high growth + limited budget) before report generation.
+// 3. Golden Thread: Every recommendation links to a parent_finding_id.
+// 4. Strategic Narrative: Executive Summary → Current State → Hard Truth
+//    → The Unlock → Risk of Inaction.
+// 5. Narrow Data Sources: Local benchmark library (KBCM, Statista,
+//    Pavilion/BenchSights) injected by stage.
+// 6. Live Audit: Tavily API real-time market data lookup.
 //
 // Architecture:
 // - session.transcript[] = clean array of {role, text} pairs
@@ -20,7 +20,111 @@
 // - Phase advancement: ALL checklist items + min turns + explicit gate
 // - LLM generates buttons but system validates them
 // - Profile updates extracted by LLM, validated by system
+// - Benchmark data loaded from api/benchmarks/saas-stages.json
 // ═══════════════════════════════════════════════════════════════════════════════
+
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BENCHMARK DATA — loaded from local JSON snapshot library
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let BENCHMARKS = null;
+function loadBenchmarks() {
+  if (BENCHMARKS) return BENCHMARKS;
+  try {
+    // Vercel: __dirname not available in ESM, use import.meta.url
+    let base;
+    try { base = dirname(fileURLToPath(import.meta.url)); } catch { base = process.cwd() + '/api'; }
+    const raw = readFileSync(join(base, 'benchmarks', 'saas-stages.json'), 'utf-8');
+    BENCHMARKS = JSON.parse(raw);
+  } catch (e) {
+    console.warn('[Benchmarks] Could not load saas-stages.json:', e.message);
+    BENCHMARKS = { stages: {}, marketContext2026: {} };
+  }
+  return BENCHMARKS;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// STAGE RESOLUTION — maps free-text stage to canonical key
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function resolveStage(rawStage) {
+  if (!rawStage) return null;
+  const s = rawStage.toLowerCase().replace(/[^a-z0-9\s]/g, '');
+  const map = {
+    'pre_seed_idea': ['pre-seed', 'pre seed', 'idea', 'concept', 'pre-revenue', 'prerevenue', 'pre revenue', 'just started', 'no revenue', 'prototype'],
+    'seed_startup': ['seed', 'startup', 'early', 'pre-series-a', 'pre series a', 'angel', 'bootstrap', 'bootstrapped', 'friends and family', 'accelerator', 'incubator'],
+    'early_scale': ['series a', 'series-a', 'growth', 'scaling', 'scale', 'early scale', 'growing', 'scaleup', 'scale-up', 'expansion stage'],
+    'expansion_enterprise': ['series b', 'series-b', 'series c', 'series-c', 'enterprise', 'expansion', 'mature', 'ipo', 'late stage', 'public']
+  };
+  for (const [key, aliases] of Object.entries(map)) {
+    if (aliases.some(a => s.includes(a))) return key;
+  }
+  // Fallback heuristics based on revenue keywords
+  if (/\b(0|zero|nothing)\b/.test(s)) return 'pre_seed_idea';
+  if (/\b(10k|20k|30k|50k)\b/.test(s) && !/100k|200k/.test(s)) return 'seed_startup';
+  if (/\b(100k|200k|500k|1m)\b/.test(s)) return 'early_scale';
+  if (/\b(5m|10m|50m|100m|ipo)\b/.test(s)) return 'expansion_enterprise';
+  return 'seed_startup'; // safe default
+}
+
+// Get the full playbook + benchmarks for a stage
+function getStagePlaybook(stageKey) {
+  const bm = loadBenchmarks();
+  return bm.stages?.[stageKey] || bm.stages?.seed_startup || null;
+}
+
+function getMarketContext() {
+  const bm = loadBenchmarks();
+  return bm.marketContext2026 || {};
+}
+
+// Format benchmarks into readable text for prompts
+function formatBenchmarksForPrompt(stageKey) {
+  const playbook = getStagePlaybook(stageKey);
+  if (!playbook) return '(No benchmark data available)';
+
+  const lines = [`STAGE: ${playbook.label}`, ''];
+
+  // Benchmarks
+  if (playbook.benchmarks) {
+    lines.push('KEY BENCHMARKS (use these to evaluate the company):');
+    for (const [metric, data] of Object.entries(playbook.benchmarks)) {
+      if (data.median !== null && data.median !== undefined) {
+        const cur = data.currency ? ` ${data.currency}` : '';
+        const unit = data.unit === 'percent' ? '%' : cur;
+        let line = `  ${metric}: median=${data.median}${unit}`;
+        if (data.good !== undefined) line += `, good=${data.good}${unit}`;
+        if (data.bad !== undefined) line += `, bad=${data.bad}${unit}`;
+        if (data.source) line += ` (${data.source})`;
+        lines.push(line);
+      }
+    }
+  }
+
+  // Playbook guidance
+  if (playbook.playbook) {
+    const pb = playbook.playbook;
+    lines.push('');
+    lines.push(`FOCUS: ${pb.focus}`);
+    lines.push(`SALES APPROACH: ${pb.salesApproach}`);
+    lines.push(`RECOMMENDED TECH STACK: ${pb.techStack?.join(', ')}`);
+    lines.push(`KEY METRICS TO TRACK: ${pb.keyMetrics?.join(', ')}`);
+    if (pb.antiPatterns?.length) {
+      lines.push('ANTI-PATTERNS (things to AVOID at this stage):');
+      pb.antiPatterns.forEach(ap => lines.push(`  ⛔ ${ap}`));
+    }
+    if (pb.budgetGuidance) {
+      const bg = pb.budgetGuidance;
+      lines.push(`BUDGET GUIDANCE: Tools max ~€${bg.toolSpend?.max || '?'}/mo, Marketing max ~€${bg.marketingSpend?.max || '?'}/mo`);
+    }
+  }
+
+  return lines.join('\n');
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PHASES — each has a checklist, minimum turns, and depth topics
@@ -97,9 +201,12 @@ function createSession() {
     diagnosisValidated: false,
     // Clean transcript — the SINGLE SOURCE OF TRUTH for conversation context
     transcript: [],
+    // Resolved stage key — drives playbook selection (set after company phase)
+    resolvedStage: null,
     // Structured profile — what we've confirmed
     profile: {
       companyName: '', website: '', industry: '', businessModel: '', stage: '',
+      companyStage: '',    // Canonical: pre_seed_idea | seed_startup | early_scale | expansion_enterprise
       revenue: '', revenueGrowth: '', teamSize: '', teamRoles: '', funding: '',
       runway: '', productDescription: '', pricingModel: '', pricingRange: '',
       competitiveLandscape: '', differentiator: '',
@@ -116,7 +223,8 @@ function createSession() {
       crm: '', tools: '', automationLevel: '',
       onboardingProcess: '', customerSuccess: '',
       diagnosedProblems: [], rootCauses: [], validatedProblems: [],
-      userPriority: '', pastAttempts: '', constraints: '', additionalContext: ''
+      userPriority: '', pastAttempts: '', constraints: '', additionalContext: '',
+      growthTarget: '', budgetLevel: '' // for feasibility checks
     },
     scrapedSummary: ''
   };
@@ -144,7 +252,8 @@ function buildProfileContext(session) {
 
   const fields = [
     ['Company', p.companyName], ['Website', p.website], ['Industry', p.industry],
-    ['Business Model', p.businessModel], ['Stage', p.stage], ['Revenue', p.revenue],
+    ['Business Model', p.businessModel], ['Stage', p.stage], ['Company Stage', p.companyStage],
+    ['Revenue', p.revenue],
     ['Revenue Growth', p.revenueGrowth], ['Team Size', p.teamSize], ['Team Roles', p.teamRoles],
     ['Funding', p.funding], ['Runway', p.runway],
     ['Product', p.productDescription], ['Pricing', `${p.pricingModel || ''} ${p.pricingRange || ''}`.trim()],
@@ -168,7 +277,8 @@ function buildProfileContext(session) {
     ['Diagnosed Problems', (p.diagnosedProblems || []).join('; ')],
     ['Root Causes', (p.rootCauses || []).join('; ')],
     ['User Priority', p.userPriority], ['Past Attempts', p.pastAttempts],
-    ['Additional Context', p.additionalContext]
+    ['Budget Level', p.budgetLevel], ['Growth Target', p.growthTarget],
+    ['Constraints', p.constraints], ['Additional Context', p.additionalContext]
   ];
 
   const known = [];
@@ -327,6 +437,13 @@ function getPhasePrompt(S) {
   const phase = PHASES[S.currentPhase];
   const turnsLeft = (phase.minTurns || 1) - S.phaseTurns;
 
+  // Stage-aware benchmark injection
+  const stageKey = S.resolvedStage || resolveStage(p.stage || p.companyStage) || 'seed_startup';
+  const stageBenchmarks = formatBenchmarksForPrompt(stageKey);
+  const stagePlaybook = getStagePlaybook(stageKey);
+  const antiPatterns = stagePlaybook?.playbook?.antiPatterns || [];
+  const marketCtx = getMarketContext();
+
   switch (S.currentPhase) {
     case 'welcome':
       return `PHASE: WELCOME (Turn ${S.phaseTurns + 1})
@@ -344,6 +461,9 @@ This is your first impression — make it count. Show you did your homework.`;
       return `PHASE: COMPANY DNA (Turn ${S.phaseTurns + 1} of minimum ${phase.minTurns})
 ${turnsLeft > 0 ? `You need at least ${turnsLeft} more turn(s) in this phase. Take your time.` : 'You can transition soon if all checklist items are filled.'}
 
+═══ STAGE-AWARE BENCHMARKS FOR THIS COMPANY ═══
+${stageBenchmarks}
+
 TOPICS TO EXPLORE (one or two per turn, go deep):
 ${phase.depthTopics.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}
 
@@ -356,8 +476,9 @@ ${phase.checklist.map(k => {
 STRATEGY:
 - Ask about ONE missing checklist item per turn
 - But ALSO go deeper on something already answered — ask follow-up questions
-- Example: if they said "SaaS subscription", ask about pricing tiers, packaging, annual vs monthly split
-- Example: if they said "€20K MRR", ask about growth rate, best/worst months, cohort trends
+- When the user shares their stage, SET profile_updates.companyStage to one of: "pre_seed_idea", "seed_startup", "early_scale", "expansion_enterprise"
+- COMPARE their answers to the BENCHMARKS above. E.g., "Your €15K MRR puts you in the Seed bracket where median churn is 5% — how does yours compare?"
+- If they mention tools/spending that conflicts with their stage, flag it: "At ${stagePlaybook?.label || 'your stage'}, the typical tool spend ceiling is €${stagePlaybook?.playbook?.budgetGuidance?.toolSpend?.max || '?'}/mo"
 - Provide benchmarks from SaaStr, T2D3, OpenView for context
 - Always connect your question to WHY it matters for revenue strategy
 
@@ -368,7 +489,16 @@ DO NOT rush. This phase should feel like a thorough discovery call.`;
 ${turnsLeft > 0 ? `At least ${turnsLeft} more turn(s) needed.` : 'Can transition if checklist complete.'}
 
 COMPANY CONTEXT FOR YOUR REFERENCE:
-Model: ${p.businessModel || '?'} | Stage: ${p.stage || '?'} | Revenue: ${p.revenue || '?'} | Team: ${p.teamSize || '?'}
+Model: ${p.businessModel || '?'} | Stage: ${p.stage || '?'} (${stagePlaybook?.label || '?'}) | Revenue: ${p.revenue || '?'} | Team: ${p.teamSize || '?'}
+
+═══ STAGE-AWARE BENCHMARKS ═══
+${stageBenchmarks}
+
+═══ MARKET CONTEXT 2026 ═══
+- B2B SaaS Market: ${marketCtx.globalSaaSMarket?.size || 'N/A'} at ${marketCtx.globalSaaSMarket?.growthRate || 'N/A'} CAGR
+- Avg B2B stakeholders in purchase: ${marketCtx.b2bBuyingBehavior?.avgStakeholders || 'N/A'}
+- Self-serve research preference: ${marketCtx.b2bBuyingBehavior?.selfServePreference || 'N/A'}
+- Companies using AI in sales: ${marketCtx.aiImpact?.companiesUsingAIinSales || 'N/A'}
 
 TOPICS TO EXPLORE:
 ${phase.depthTopics.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}
@@ -381,10 +511,12 @@ ${phase.checklist.map(k => {
 
 STRATEGY:
 - Start this phase with a brief transition: summarize company DNA, then pivot to GTM
+- COMPARE their ICP and channels to stage benchmarks: e.g., "At ${stagePlaybook?.label || 'your stage'}, median deal size is €${stagePlaybook?.benchmarks?.avgDealSize?.median || '?'} — yours is ${p.avgDealSize || 'unknown'}"
 - For ICP: push for specificity. Not "marketing people" but "Head of Demand Gen at B2B SaaS, 50-200 employees, Series A funded"
 - For channels: don't just ask WHICH channels — ask about PERFORMANCE. "Which channel brings the highest quality leads? What's the conversion rate from each?"
 - Reference April Dunford positioning framework, Jobs-to-be-Done
-- Ask about competitive wins/losses: "When you lose a deal, who do you lose to and why?"`;
+- Ask about competitive wins/losses: "When you lose a deal, who do you lose to and why?"
+- FLAG ANTI-PATTERNS if detected: ${antiPatterns.slice(0, 3).join('; ')}`;
 
     case 'sales':
       return `PHASE: SALES ENGINE (Turn ${S.phaseTurns + 1} of minimum ${phase.minTurns})
@@ -392,6 +524,11 @@ ${turnsLeft > 0 ? `At least ${turnsLeft} more turn(s) needed.` : 'Can transition
 
 CONTEXT:
 Model: ${p.businessModel || '?'} | ICP: ${p.icpTitle || '?'} | Motion: ${p.salesMotion || '?'} | Deal: ${p.avgDealSize || '?'}
+
+═══ STAGE-AWARE BENCHMARKS ═══
+${stageBenchmarks}
+
+RECOMMENDED TECH STACK FOR THEIR STAGE: ${stagePlaybook?.playbook?.techStack?.join(', ') || 'N/A'}
 
 TOPICS TO EXPLORE:
 ${phase.depthTopics.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}
@@ -404,10 +541,12 @@ ${phase.checklist.map(k => {
 
 STRATEGY:
 - Ask for a WALKTHROUGH: "Take me through a recent deal from first touch to signature"
+- COMPARE their sales metrics to benchmarks: win rate (median ${stagePlaybook?.benchmarks?.winRate?.median || '?'}%), sales cycle (median ${stagePlaybook?.benchmarks?.salesCycleDays?.median || '?'} days), CAC (median €${stagePlaybook?.benchmarks?.cac?.median || '?'})
 - For bottleneck: make a HYPOTHESIS first, then ask: "Based on everything, I suspect [X] because [Y]. Am I right?"
+- If they mention tools that don't match their stage, flag it. Recommended stack: ${stagePlaybook?.playbook?.techStack?.slice(0, 3).join(', ') || 'N/A'}
 - Ask about post-sale: onboarding, churn, expansion — this is often overlooked but critical
-- Ask about tools: CRM, sequences, analytics. Be specific: "Do you use HubSpot, Pipedrive, Salesforce?"
 - Reference MEDDPICC for process evaluation
+- FLAG ANTI-PATTERNS: ${antiPatterns.slice(0, 3).join('; ')}
 - This is the last discovery phase before diagnosis — make it count`;
 
     case 'diagnosis':
@@ -416,20 +555,27 @@ STRATEGY:
 
 You have gathered enough data. NOW present your diagnostic.
 
+═══ STAGE-AWARE BENCHMARKS ═══
+${stageBenchmarks}
+
+═══ ANTI-PATTERNS FOR ${stagePlaybook?.label || 'THEIR STAGE'} ═══
+${antiPatterns.map(ap => `  ⛔ ${ap}`).join('\n')}
+
 STRUCTURE (follow exactly):
 1. Opening: "Ecco la mia diagnosi" / "Here is my diagnostic assessment"
 2. COMPANY SNAPSHOT: 4-5 sentences summarizing everything using ONLY ✅ confirmed data
 3. THREE REVENUE PROBLEMS — for each:
-   - **Bold problem name**
+   - **Bold problem name** with a finding_id (F1, F2, F3)
    - Why it exists (root cause — reference what USER told you specifically)
-   - Revenue impact (estimate with reasoning)
-   - Benchmark (what good looks like)
+   - Revenue impact (estimate with reasoning, or qualitative if no data)
+   - **Benchmark comparison**: compare their reality to stage benchmarks above
    - Severity: 🔴 Critical / 🟡 High / 🟢 Medium
+   - **Anti-pattern check**: flag if this problem maps to a known anti-pattern for their stage
 4. CORE HYPOTHESIS: one bold sentence connecting all three problems
 5. Ask: "Does this resonate? What did I get right, and what did I miss?"
 
 Set phase_signals.diagnosis_presented = true
-Set profile_updates.diagnosedProblems = ["Problem 1 name", "Problem 2 name", "Problem 3 name"]
+Set profile_updates.diagnosedProblems = ["F1: Problem 1 name", "F2: Problem 2 name", "F3: Problem 3 name"]
 Set profile_updates.rootCauses = ["Cause 1", "Cause 2", "Cause 3"]
 
 THIS MUST BE YOUR LONGEST MESSAGE. At least 15 sentences.
@@ -442,20 +588,27 @@ User responded to your diagnosis. React to their feedback:
 - If they agreed: validate, suggest priority order, ask which is #1
 - If they disagreed: ask what's wrong, adjust, show flexibility
 - Ask: "Which problem is your #1 priority? And what have you already tried to fix it?"
+- Also ask about constraints: "Any budget or resource constraints I should factor in?"
 
 Set phase_signals.diagnosis_validated = true when they confirm
-Extract userPriority from their response`;
+Extract userPriority, constraints, and budgetLevel from their response
+For budgetLevel use: "limited", "moderate", "flexible"`;
       }
       return `Diagnosis complete. Transition to final summary.`;
 
     case 'pre_finish':
       return `PHASE: FINAL SUMMARY
 
+═══ STAGE-AWARE CONTEXT ═══
+Company Stage: ${stagePlaybook?.label || '?'}
+Focus for this stage: ${stagePlaybook?.playbook?.focus || '?'}
+
 Present complete picture using ONLY confirmed data:
 1. Company snapshot
-2. Three diagnosed problems in priority order
-3. Preview: "Your Strategic Growth Plan will include: executive summary, diagnostic findings, 90-day roadmap, metrics, tool recommendations"
-4. Ask: "Ready to generate?"
+2. Three diagnosed problems in priority order (reference finding IDs: F1, F2, F3)
+3. For each problem, tease ONE actionable recommendation appropriate to their stage
+4. Preview: "Your Strategic Growth Plan will include: strategic narrative, diagnostic findings with benchmark comparison, 90-day roadmap with second-order effects, metrics dashboard, tool recommendations calibrated to your ${stagePlaybook?.label || ''} stage"
+5. Ask: "Ready to generate?"
 
 MUST include button: {"key":"generate_report","label":"📥 Generate Strategic Growth Plan"}
 Also: {"key":"add_context","label":"I want to add more context first"}`;
@@ -578,7 +731,7 @@ export default async function handler(req, res) {
     if (choice !== 'SNAPSHOT_INIT') {
       if (canAdvancePhase(S)) {
         doAdvance(S);
-        console.log(`[v11] Phase → ${S.currentPhase}`);
+        console.log(`[v12] Phase → ${S.currentPhase}`);
       }
     }
 
@@ -594,6 +747,8 @@ export default async function handler(req, res) {
 
 You know: MEDDPICC, Bow-Tie funnel, T2D3, SaaStr benchmarks, April Dunford positioning, Pirate Metrics (AARRR), David Sacks metrics (Burn Multiple, Magic Number, Rule of 40). You reference these naturally.
 
+You have access to NARROW BENCHMARK DATA from KBCM SaaS Survey, Statista, Pavilion/BenchSights, OpenView, and Bessemer Cloud Index. USE THESE to validate or challenge the user's claims. Compare their numbers to stage-appropriate medians.
+
 ═══ LANGUAGE ═══
 Match the user's language exactly. If they write Italian, respond 100% in Italian. English → English.
 
@@ -602,6 +757,10 @@ ${transcript}
 
 ═══ CONFIRMED PROFILE DATA ═══
 ${profileCtx}
+
+═══ COMPANY STAGE ═══
+Resolved: ${S.resolvedStage || 'not yet determined'}
+${S.resolvedStage ? formatBenchmarksForPrompt(S.resolvedStage) : '(Stage not yet identified — ask about it)'}
 
 ═══ WEBSITE SCAN DATA ═══
 ${S.scrapedSummary || '(none)'}
@@ -643,7 +802,10 @@ ${choice !== 'SNAPSHOT_INIT' ? `═══ USER'S LATEST MESSAGE ═══\n"${ch
 9. Minimum 5 sentences per response. This is a premium consulting experience.
 10. Never use filler: "interesting", "great", "that's helpful", "let me understand", "tell me more".
 11. Every turn should teach the user something — a benchmark, a framework, an insight about their business.
-12. If the user attached files, acknowledge them first and ask what they contain and why they're relevant.`;
+12. If the user attached files, acknowledge them first and ask what they contain and why they're relevant.
+13. When extracting stage info, set profile_updates.companyStage to one of: "pre_seed_idea", "seed_startup", "early_scale", "expansion_enterprise"
+14. Always compare the user's numbers to STAGE-APPROPRIATE benchmarks. E.g., "Your 7% monthly churn is above the ${S.resolvedStage ? getStagePlaybook(S.resolvedStage)?.label : 'stage'} median of X%"
+15. Flag ANTI-PATTERNS: if the user describes behavior that conflicts with their stage's playbook, call it out diplomatically.`;
 
     // ══════════════════════════════════════════════════
     // CALL LLM
@@ -680,6 +842,18 @@ ${choice !== 'SNAPSHOT_INIT' ? `═══ USER'S LATEST MESSAGE ═══\n"${ch
       if (llm.phase_signals.diagnosis_validated === true) S.diagnosisValidated = true;
     }
 
+    // ══════════════════════════════════════════════════
+    // STAGE RESOLUTION — update resolvedStage when stage/companyStage changes
+    // ══════════════════════════════════════════════════
+    if (S.profile.companyStage || S.profile.stage) {
+      const newStage = resolveStage(S.profile.companyStage || S.profile.stage);
+      if (newStage && newStage !== S.resolvedStage) {
+        S.resolvedStage = newStage;
+        S.profile.companyStage = newStage;
+        console.log(`[v12] Stage resolved → ${newStage}`);
+      }
+    }
+
     // Record AI message in transcript
     const aiMsg = llm.message || '';
     S.transcript.push({ role: 'assistant', text: aiMsg });
@@ -696,7 +870,7 @@ ${choice !== 'SNAPSHOT_INIT' ? `═══ USER'S LATEST MESSAGE ═══\n"${ch
     const hasGen = options.some(o => o.key === 'generate_report');
     const mode = (isFinish && hasGen) ? 'buttons' : 'mixed';
 
-    console.log(`[v11] T${S.totalTurns} phase:${S.currentPhase} pt:${S.phaseTurns} opts:${options.length} conf:${calcConf(S).total}%`);
+    console.log(`[v12] T${S.totalTurns} phase:${S.currentPhase} pt:${S.phaseTurns} stage:${S.resolvedStage || '?'} opts:${options.length} conf:${calcConf(S).total}%`);
 
     return res.status(200).json({
       step_id: S.currentPhase,
@@ -770,14 +944,15 @@ function buildFallback(S) {
 function calcConf(S) {
   const p = S.profile;
   // Weighted: core fields worth more, depth fields worth less
-  const core = ['companyName', 'businessModel', 'stage', 'revenue', 'teamSize', 'funding',
+  const core = ['companyName', 'businessModel', 'stage', 'companyStage', 'revenue', 'teamSize', 'funding',
     'icpTitle', 'salesMotion', 'channels', 'avgDealSize',
-    'salesProcess', 'whoCloses', 'mainBottleneck']; // 13 items, 4 pts each = 52
+    'salesProcess', 'whoCloses', 'mainBottleneck']; // 14 items, 4 pts each = 56
   const depth = ['teamRoles', 'pricingModel', 'revenueGrowth', 'competitiveLandscape',
     'icpCompanySize', 'icpPainPoints', 'bestChannel', 'salesCycle',
-    'winRate', 'lostDealReasons', 'churnRate', 'crm', 'tools']; // 13 items, 2 pts each = 26
+    'winRate', 'lostDealReasons', 'churnRate', 'crm', 'tools',
+    'budgetLevel', 'constraints']; // 15 items, 2 pts each = 30
   const milestones = ['diagnosedProblems', 'userPriority']; // 2 items, 6 pts each = 12
-  // Total possible: 52 + 26 + 12 = 90 pts → normalized to 100%
+  // Total possible: 56 + 30 + 12 = 98 pts → normalized to 100%
 
   let score = 0;
   for (const k of core) { const v = p[k]; if (v && v.trim()) score += 4; }
@@ -787,5 +962,5 @@ function calcConf(S) {
     if (Array.isArray(v) ? v.length > 0 : (v && v.trim())) score += 6;
   }
 
-  return { total: Math.min(100, Math.round((score / 90) * 100)) };
+  return { total: Math.min(100, Math.round((score / 98) * 100)) };
 }
