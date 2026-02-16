@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/chat.js": {
+      "includeFiles": "api/benchmarks/**"
+    },
+    "api/report.js": {
+      "includeFiles": "api/benchmarks/**"
+    }
+  }
+}
