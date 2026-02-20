@@ -151,6 +151,363 @@ function runFeasibilityChecks(profile, stageData) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// BENCHMARK SCORECARD — compare user metrics to stage benchmarks w/ visual gauge
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function buildBenchmarkScorecard(profile, stageData) {
+  if (!stageData?.benchmarks) return '';
+  const bm = stageData.benchmarks;
+  const p = profile;
+  const lines = [`## Benchmark Scorecard — ${stageData.label} Stage\n`];
+  lines.push('| Metric | Your Value | Stage Median | Good | Assessment | Visual |');
+  lines.push('|--------|-----------|-------------|------|------------|--------|');
+
+  // Helper: parse a numeric value from user input
+  const num = (v) => {
+    if (!v) return null;
+    const s = String(v).replace(/[^0-9.,]/g, '').replace(',', '.');
+    const n = parseFloat(s);
+    return isNaN(n) ? null : n;
+  };
+
+  // Helper: generate visual gauge (5-block bar)
+  const gauge = (userVal, median, good, bad, lowerIsBetter = false) => {
+    if (userVal === null || median === null) return '—';
+    let ratio;
+    if (lowerIsBetter) {
+      // For metrics where lower is better (churn, CAC, burn multiple)
+      if (good && userVal <= good) return '🟢🟢🟢🟢🟢';
+      if (bad && userVal >= bad) return '🔴🔴🔴🔴🔴';
+      ratio = median / Math.max(userVal, 0.01);
+    } else {
+      // For metrics where higher is better (LTV, NRR, win rate)
+      if (good && userVal >= good) return '🟢🟢🟢🟢🟢';
+      if (bad && userVal <= bad) return '🔴🔴🔴🔴🔴';
+      ratio = userVal / Math.max(median, 0.01);
+    }
+    if (ratio >= 1.3) return '🟢🟢🟢🟢⚪';
+    if (ratio >= 1.0) return '🟢🟢🟢⚪⚪';
+    if (ratio >= 0.7) return '🟡🟡⚪⚪⚪';
+    return '🔴🔴⚪⚪⚪';
+  };
+
+  const assess = (userVal, median, good, bad, lowerIsBetter = false) => {
+    if (userVal === null) return 'Not disclosed';
+    if (lowerIsBetter) {
+      if (good !== undefined && userVal <= good) return '✅ Strong';
+      if (bad !== undefined && userVal >= bad) return '🔴 Critical';
+      if (userVal <= median) return '✅ At/above median';
+      return '⚠️ Below median';
+    } else {
+      if (good !== undefined && userVal >= good) return '✅ Strong';
+      if (bad !== undefined && userVal <= bad) return '🔴 Critical';
+      if (userVal >= median) return '✅ At/above median';
+      return '⚠️ Below median';
+    }
+  };
+
+  // Map user fields to benchmark keys
+  const metrics = [
+    { key: 'churnMonthly', label: 'Monthly Churn', userField: p.churnRate, unit: '%', lowerBetter: true },
+    { key: 'cac', label: 'CAC', userField: p.cac, unit: '€', lowerBetter: true },
+    { key: 'ltv', label: 'LTV', userField: p.ltv, unit: '€', lowerBetter: false },
+    { key: 'salesCycleDays', label: 'Sales Cycle', userField: p.salesCycle, unit: ' days', lowerBetter: true },
+    { key: 'avgDealSize', label: 'Avg Deal Size', userField: p.avgDealSize, unit: '€', lowerBetter: false },
+    { key: 'winRate', label: 'Win Rate', userField: p.winRate, unit: '%', lowerBetter: false },
+    { key: 'netRevenueRetention', label: 'Net Revenue Retention', userField: p.nrr, unit: '%', lowerBetter: false },
+    { key: 'burnMultiple', label: 'Burn Multiple', userField: null, unit: 'x', lowerBetter: true },
+    { key: 'grossMargin', label: 'Gross Margin', userField: null, unit: '%', lowerBetter: false },
+  ];
+
+  let scorecardRows = 0;
+  for (const m of metrics) {
+    const bmData = bm[m.key];
+    if (!bmData || bmData.median === null || bmData.median === undefined) continue;
+    const userVal = num(m.userField);
+    const med = bmData.median;
+    const good = bmData.good;
+    const bad = bmData.bad;
+
+    const userDisplay = userVal !== null ? `${userVal}${m.unit}` : '*Not disclosed*';
+    const medDisplay = `${med}${m.unit}`;
+    const goodDisplay = good !== undefined ? `${good}${m.unit}` : '—';
+    const visual = gauge(userVal, med, good, bad, m.lowerBetter);
+    const assessment = assess(userVal, med, good, bad, m.lowerBetter);
+
+    lines.push(`| ${m.label} | ${userDisplay} | ${medDisplay} | ${goodDisplay} | ${assessment} | ${visual} |`);
+    scorecardRows++;
+  }
+
+  if (scorecardRows === 0) return '';
+
+  lines.push('');
+  lines.push('> 🟢 = strong / at or above good threshold | 🟡 = near median | 🔴 = below median or critical | ⚪ = room to grow');
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CHART DATA BUILDER — structured data for frontend Chart.js rendering
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function buildChartData(profile, stageData) {
+  if (!stageData?.benchmarks) return null;
+  const bm = stageData.benchmarks;
+  const p = profile;
+
+  const num = (v) => {
+    if (v === null || v === undefined) return null;
+    if (typeof v === 'number') return v;
+    const s = String(v).replace(/[^0-9.,]/g, '').replace(',', '.');
+    if (s === '') return null;
+    const n = parseFloat(s);
+    return isNaN(n) ? null : n;
+  };
+
+  // Metrics definition (same as scorecard)
+  const metricDefs = [
+    { key: 'churnMonthly', label: 'Monthly Churn', userField: p.churnRate, unit: '%', lowerBetter: true },
+    { key: 'cac', label: 'CAC', userField: p.cac, unit: '€', lowerBetter: true },
+    { key: 'ltv', label: 'LTV', userField: p.ltv, unit: '€', lowerBetter: false },
+    { key: 'salesCycleDays', label: 'Sales Cycle', userField: p.salesCycle, unit: 'days', lowerBetter: true },
+    { key: 'avgDealSize', label: 'Avg Deal Size', userField: p.avgDealSize, unit: '€', lowerBetter: false },
+    { key: 'winRate', label: 'Win Rate', userField: p.winRate, unit: '%', lowerBetter: false },
+    { key: 'netRevenueRetention', label: 'NRR', userField: p.nrr, unit: '%', lowerBetter: false },
+    { key: 'grossMargin', label: 'Gross Margin', userField: null, unit: '%', lowerBetter: false },
+  ];
+
+  // Build radar data: normalize user vs median to 0-100 scale (100 = best)
+  const radarLabels = [];
+  const radarUser = [];
+  const radarMedian = [];
+  const radarGood = [];
+
+  // Build bar data: normalized 0-100 values (like radar) for fair cross-metric comparison
+  const barLabels = [];
+  const barUser = [];
+  const barMedian = [];
+  const barGood = [];
+  const barUnits = [];
+  let barRawUser = [];
+  let barRawMedian = [];
+
+  for (const m of metricDefs) {
+    const bmData = bm[m.key];
+    if (!bmData || bmData.median === null || bmData.median === undefined) continue;
+
+    const userVal = num(m.userField);
+    const med = bmData.median;
+    const good = bmData.good;
+
+    // For bar chart: include all metrics even without user data
+    barLabels.push(m.label);
+    barUnits.push(m.unit);
+
+    // Normalize to 0-100 for bar chart (same logic as radar)
+    const goodVal = good !== undefined ? good : (m.lowerBetter ? med * 0.5 : med * 2);
+    const badVal = bmData.bad !== undefined ? bmData.bad : (m.lowerBetter ? med * 2 : med * 0.3);
+
+    const normForBar = (val) => {
+      if (val === null || val === undefined) return null;
+      if (m.lowerBetter) {
+        if (val <= goodVal) return 100;
+        if (val >= badVal) return 0;
+        return Math.round(100 * (badVal - val) / (badVal - goodVal));
+      } else {
+        if (val >= goodVal) return 100;
+        if (val <= badVal) return 0;
+        return Math.round(100 * (val - badVal) / (goodVal - badVal));
+      }
+    };
+
+    barUser.push(normForBar(userVal));
+    barMedian.push(normForBar(med));
+    barGood.push(100); // Good threshold always normalizes to 100
+    // Also store raw values for tooltips
+    barRawUser.push(userVal);
+    barRawMedian.push(med);
+
+    // For radar chart: only metrics where user has data
+    if (userVal !== null) {
+      radarLabels.push(m.label);
+      // Normalize to 0-100 where 100 = best possible
+      const goodVal = good !== undefined ? good : (m.lowerBetter ? med * 0.5 : med * 2);
+      const badVal = bmData.bad !== undefined ? bmData.bad : (m.lowerBetter ? med * 2 : med * 0.3);
+
+      const normalize = (val) => {
+        if (m.lowerBetter) {
+          // Lower is better: good=100, bad=0
+          if (val <= goodVal) return 100;
+          if (val >= badVal) return 0;
+          return Math.round(100 * (badVal - val) / (badVal - goodVal));
+        } else {
+          // Higher is better: good=100, bad=0
+          if (val >= goodVal) return 100;
+          if (val <= badVal) return 0;
+          return Math.round(100 * (val - badVal) / (goodVal - badVal));
+        }
+      };
+
+      radarUser.push(Math.max(0, Math.min(100, normalize(userVal))));
+      radarMedian.push(Math.max(0, Math.min(100, normalize(med))));
+      radarGood.push(100); // Good threshold is always 100 on normalized scale
+    }
+  }
+
+  if (barLabels.length === 0) return null;
+
+  return {
+    stageLabel: stageData.label,
+    radar: {
+      labels: radarLabels,
+      datasets: {
+        user: radarUser,
+        median: radarMedian,
+        good: radarGood
+      }
+    },
+    bar: {
+      labels: barLabels,
+      datasets: {
+        user: barUser,
+        median: barMedian,
+        good: barGood
+      },
+      units: barUnits,
+      rawUser: barRawUser,
+      rawMedian: barRawMedian
+    }
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DASHBOARD DATA BUILDER — structured data for interactive 90-day tracking
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function buildDashboardData(profile, stageData) {
+  if (!stageData?.benchmarks) return null;
+  const bm = stageData.benchmarks;
+  const p = profile;
+
+  const num = (v) => {
+    if (v === null || v === undefined) return null;
+    if (typeof v === 'number') return v;
+    const s = String(v).replace(/[^0-9.,]/g, '').replace(',', '.');
+    if (s === '') return null;
+    const n = parseFloat(s);
+    return isNaN(n) ? null : n;
+  };
+
+  const metricDefs = [
+    { key: 'churnMonthly', label: 'Monthly Churn', userField: p.churnRate, unit: '%', lowerBetter: true },
+    { key: 'cac', label: 'Customer Acquisition Cost', userField: p.cac, unit: '€', lowerBetter: true },
+    { key: 'ltv', label: 'Lifetime Value', userField: p.ltv, unit: '€', lowerBetter: false },
+    { key: 'salesCycleDays', label: 'Sales Cycle', userField: p.salesCycle, unit: 'days', lowerBetter: true },
+    { key: 'avgDealSize', label: 'Avg Deal Size', userField: p.avgDealSize, unit: '€', lowerBetter: false },
+    { key: 'winRate', label: 'Win Rate', userField: p.winRate, unit: '%', lowerBetter: false },
+    { key: 'netRevenueRetention', label: 'Net Revenue Retention', userField: p.nrr, unit: '%', lowerBetter: false },
+    { key: 'grossMargin', label: 'Gross Margin', userField: null, unit: '%', lowerBetter: false },
+  ];
+
+  const metrics = [];
+  for (const m of metricDefs) {
+    const bmData = bm[m.key];
+    if (!bmData || bmData.median === null || bmData.median === undefined) continue;
+    const userVal = num(m.userField);
+    if (userVal === null) continue; // Dashboard only tracks metrics with known current values
+
+    const med = bmData.median;
+    const good = bmData.good !== undefined ? bmData.good : (m.lowerBetter ? med * 0.5 : med * 2);
+    const bad = bmData.bad !== undefined ? bmData.bad : (m.lowerBetter ? med * 2 : med * 0.3);
+
+    // 90-day target: move 60% toward "good" from current
+    let target90;
+    if (m.lowerBetter) {
+      target90 = userVal <= good ? userVal : Math.round((userVal - (userVal - good) * 0.6) * 100) / 100;
+    } else {
+      target90 = userVal >= good ? userVal : Math.round((userVal + (good - userVal) * 0.6) * 100) / 100;
+    }
+
+    // Health score 0-100
+    let healthScore;
+    if (m.lowerBetter) {
+      if (userVal <= good) healthScore = 100;
+      else if (userVal >= bad) healthScore = 0;
+      else healthScore = Math.round(100 * (bad - userVal) / (bad - good));
+    } else {
+      if (userVal >= good) healthScore = 100;
+      else if (userVal <= bad) healthScore = 0;
+      else healthScore = Math.round(100 * (userVal - bad) / (good - bad));
+    }
+    healthScore = Math.max(0, Math.min(100, healthScore));
+
+    metrics.push({
+      key: m.key,
+      label: m.label,
+      unit: m.unit,
+      lowerBetter: m.lowerBetter,
+      current: userVal,
+      stageMedian: med,
+      good,
+      bad,
+      target90Day: target90,
+      healthScore
+    });
+  }
+
+  if (metrics.length === 0) return null;
+
+  return {
+    companyName: p.companyName || 'Company',
+    stageLabel: stageData.label,
+    generatedAt: new Date().toISOString(),
+    metrics
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// OPERATING MODEL BLOCK — build context from collected profile data
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function buildOperatingModelContext(profile) {
+  const fields = [
+    ['Current Situation', profile.currentSituation],
+    ['Org Structure', profile.orgStructure],
+    ['Decision Making', profile.decisionMaking],
+    ['Key Dependencies', profile.keyDependencies],
+    ['Team Morale / Culture', profile.teamMorale],
+    ['Systems Landscape', profile.systemsLandscape],
+    ['Roadmap (6-12mo)', profile.roadmap],
+    ['Planned Changes', profile.plannedChanges],
+    ['Team Enablement', profile.teamEnablement],
+    ['Who Closes Deals', profile.whoCloses],
+    ['Founder Involvement', profile.founderInvolvement],
+    ['CRM', profile.crm],
+    ['Tools', profile.tools],
+    ['Automation Level', profile.automationLevel],
+  ];
+
+  const confirmed = [];
+  const gaps = [];
+  for (const [label, value] of fields) {
+    if (value && typeof value === 'string' && value.trim()) {
+      confirmed.push(`  • ${label}: ${value.trim()}`);
+    } else {
+      gaps.push(label);
+    }
+  }
+
+  if (confirmed.length === 0) return '(No operating model data collected during discovery)';
+
+  let block = 'CONFIRMED OPERATING MODEL DATA:\n' + confirmed.join('\n');
+  if (gaps.length > 0) {
+    block += '\n\nGAPS (not disclosed — flag as "To be assessed" in Operating Model section):\n  ' + gaps.join(', ');
+  }
+  return block;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // LIVE AUDIT — Tavily API for real-time market data
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -220,6 +577,18 @@ export default async function handler(req, res) {
       console.warn('[Report v12] Live audit skipped:', e.message);
     }
 
+    // ── Benchmark Scorecard ──
+    const scorecardBlock = buildBenchmarkScorecard(p, stageData);
+
+    // ── Chart Data for frontend rendering ──
+    const chartData = buildChartData(p, stageData);
+
+    // ── Dashboard Data for interactive 90-day tracking ──
+    const dashboardData = buildDashboardData(p, stageData);
+
+    // ── Operating Model Context ──
+    const operatingModelBlock = buildOperatingModelContext(p);
+
     // ── Build confirmed/unknown split ──
     function has(v) {
       if (Array.isArray(v)) return v.length > 0 ? v.join('; ') : null;
@@ -244,7 +613,7 @@ export default async function handler(req, res) {
       'Win Rate': p.winRate, 'Lost Deal Reasons': p.lostDealReasons, 'Objections': p.mainObjections,
       'Main Bottleneck': p.mainBottleneck, 'Secondary Bottleneck': p.secondaryBottleneck,
       'Churn Rate': p.churnRate, 'Churn Reasons': p.churnReasons,
-      'Expansion Revenue': p.expansionRevenue,
+      'Expansion Revenue': p.expansionRevenue, 'NRR': p.nrr,
       'CRM': p.crm, 'Tools': p.tools, 'Automation Level': p.automationLevel,
       'Onboarding': p.onboardingProcess, 'Customer Success': p.customerSuccess,
       'Diagnosed Problems': p.diagnosedProblems, 'Root Causes': p.rootCauses,
@@ -352,6 +721,16 @@ ${playbookBlock}
 ${marketBlock}
 ${guardrailBlock}
 ${liveAuditBlock}
+
+═══════════════════════════════════════════
+BENCHMARK SCORECARD (pre-computed — embed in report)
+═══════════════════════════════════════════
+${scorecardBlock || '(Insufficient user data for scorecard — generate comparison table from available metrics)'}
+
+═══════════════════════════════════════════
+OPERATING MODEL DATA (collected during discovery)
+═══════════════════════════════════════════
+${operatingModelBlock}
 
 ═══════════════════════════════════════════
 WEBSITE SCAN
@@ -472,6 +851,54 @@ CRITICAL: Every recommendation MUST trace back to a parent finding via finding_i
 
 ---
 
+## Benchmark Scorecard — ${companyName} vs. ${stageData?.label || 'Stage'} Median
+
+Embed the pre-computed BENCHMARK SCORECARD above as-is (it contains visual gauge indicators).
+Then ADD a brief narrative (3-5 sentences) interpreting the scorecard:
+- Which metrics are strengths?
+- Which are critical gaps?
+- How do the gaps connect to the diagnosed findings (F1, F2, F3)?
+- What does this pattern tell us about the company's stage-readiness?
+
+### Market Context Illustration
+
+Using the MARKET CONTEXT 2026 data and LIVE MARKET DATA (if available), write a brief section (3-4 sentences) placing ${companyName} within the broader market:
+- Industry growth trajectory and what it means for their timing
+- How their GTM motion compares to market trends (self-serve preference, AI adoption, RevOps maturity)
+- One insight from market data that directly impacts their 90-day plan
+
+---
+
+## Operating Model Design
+
+Using the OPERATING MODEL DATA collected during discovery, design a target operating model for ${companyName}.
+
+### Current Operating Model Assessment
+
+| Dimension | Current State | Stage-Appropriate Target | Gap | Priority |
+|-----------|--------------|-------------------------|-----|----------|
+| Org Structure | [from data] | [stage recommendation] | [gap analysis] | 🔴/🟡/🟢 |
+| Decision Flow | [from data] | [stage recommendation] | [gap analysis] | 🔴/🟡/🟢 |
+| Key Dependencies | [from data] | [stage recommendation] | [gap analysis] | 🔴/🟡/🟢 |
+| Systems & Tools | [from data] | [stage recommendation] | [gap analysis] | 🔴/🟡/🟢 |
+| Team Enablement | [from data] | [stage recommendation] | [gap analysis] | 🔴/🟡/🟢 |
+| Automation Maturity | [from data] | [stage recommendation] | [gap analysis] | 🔴/🟡/🟢 |
+
+For UNKNOWN dimensions, write: "Not disclosed — recommended assessment area"
+
+### Target Operating Model (90-Day Horizon)
+
+Describe the RECOMMENDED operating model for ${companyName} at the end of the 90-day sprint:
+1. **Team Structure & Roles**: Who should own what? Where should new hires slot in? What roles are missing?
+2. **Decision Flow**: How should key decisions (pricing, hiring, deal approval) flow? Where should founder dependency reduce?
+3. **Systems Architecture**: Which tools to keep, replace, or add — mapped to the RECOMMENDED TECH STACK for ${stageData?.label || 'their'} stage
+4. **Process Design**: Key processes that need to exist (lead handoff, deal review, customer onboarding, QBR)
+5. **Metrics & Cadence**: What should be measured, by whom, how often (daily/weekly/monthly rituals)
+
+Connect EVERY operating model recommendation to a parent_finding_id (F1, F2, F3) and show how the new operating model resolves the diagnosed problems.
+
+---
+
 ## Metrics Dashboard
 
 | Metric | Current | ${stageData?.label || 'Stage'} Median | 90-Day Target | How to Track | Source |
@@ -530,7 +957,11 @@ ANTI-HALLUCINATION RULES
 10. SECOND-ORDER EFFECTS: Month 1 must enable Month 2, Month 2 must enable Month 3. Not a flat list.
 11. STAGE-CALIBRATION: All benchmarks, tools, and budget guidance must fit ${stageData?.label || 'their'} stage.
 12. FEASIBILITY FLAGS: Address detected contradictions explicitly. Do not produce a roadmap that ignores them.
-13. Use NARROW BENCHMARK DATA from KBCM, Statista, Pavilion. Cite the source.`;
+13. Use NARROW BENCHMARK DATA from KBCM, Statista, Pavilion. Cite the source.
+14. BENCHMARK SCORECARD: Embed the pre-computed scorecard with visual gauges. Add narrative interpretation connecting gaps to findings.
+15. OPERATING MODEL: Use confirmed operating model data to design a concrete target model. For gaps, flag them as assessment areas. Every OM recommendation must trace to a finding_id.
+16. MARKET ILLUSTRATIONS: When citing market data (SaaS market size, AI adoption, RevOps trends), frame it as context that impacts the company's specific situation. Don't just cite — connect it to their 90-day plan.
+17. For companies with disclosed metrics, generate a BENCHMARK POSITION narrative: "Your [metric] of [X] places you in the [top/bottom] [N]th percentile for ${stageData?.label || 'your'} stage companies (source: [benchmark])." Use this to validate urgency.`;
 
     const resp = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${geminiKey}`,
@@ -554,7 +985,9 @@ ANTI-HALLUCINATION RULES
       filename: `Growth_Plan_${companyName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}`,
       pdf_base64: null,
       feasibility_flags: feasibilityFlags,
-      stage: stageKey
+      stage: stageKey,
+      chart_data: chartData,
+      dashboard_data: dashboardData
     });
 
   } catch (e) {

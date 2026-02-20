@@ -233,6 +233,7 @@ function createSession() {
       winRate: '', lostDealReasons: '', mainObjections: '',
       mainBottleneck: '', secondaryBottleneck: '',
       churnRate: '', churnReasons: '', expansionRevenue: '',
+      nrr: '',              // Net Revenue Retention (percentage, e.g. "110")
       crm: '', tools: '', automationLevel: '',
       onboardingProcess: '', customerSuccess: '',
       teamEnablement: '',         // Training, playbooks, coaching quality
@@ -289,7 +290,7 @@ function buildProfileContext(session) {
     ['Lost Deal Reasons', p.lostDealReasons], ['Objections', p.mainObjections],
     ['Main Bottleneck', p.mainBottleneck], ['Secondary Bottleneck', p.secondaryBottleneck],
     ['Churn Rate', p.churnRate], ['Churn Reasons', p.churnReasons],
-    ['Expansion Revenue', p.expansionRevenue],
+    ['Expansion Revenue', p.expansionRevenue], ['NRR', p.nrr],
     ['CRM', p.crm], ['Tools', p.tools], ['Automation Level', p.automationLevel],
     ['Onboarding', p.onboardingProcess], ['Customer Success', p.customerSuccess],
     ['Team Enablement', p.teamEnablement],
@@ -573,10 +574,11 @@ STRATEGY — ENABLEMENT, REALITY & OPERATING MODEL:
 - COMPARE their sales metrics to benchmarks: win rate (median ${stagePlaybook?.benchmarks?.winRate?.median || '?'}%), sales cycle (median ${stagePlaybook?.benchmarks?.salesCycleDays?.median || '?'} days), CAC (median €${stagePlaybook?.benchmarks?.cac?.median || '?'})
 - For bottleneck: make a HYPOTHESIS first, then ask: "Based on everything, I suspect [X] because [Y]. Am I right?"
 - Ask about post-sale: onboarding, churn, expansion — WHO owns the customer after signature?
+- EXTRACT NRR: when the user mentions Net Revenue Retention (NRR), dollar retention, or expansion rate as a PERCENTAGE (e.g. "110%", "95%"), set profile_updates.nrr to that number as a string (e.g. "110"). NRR is NOT the same as expansion revenue in absolute terms — it is the percentage of recurring revenue retained + expanded after 12 months. If the user only mentions expansion in currency (e.g. "€5K/month expansion"), store that in expansionRevenue but do NOT put it in nrr.
 - Probe PLANNED CHANGES: new hires, process overhauls, tool migrations they are considering.
 - Reference MEDDPICC for process evaluation
 - FLAG ANTI-PATTERNS: ${antiPatterns.slice(0, 3).join('; ')}
-- Extract into: teamEnablement, keyDependencies, systemsLandscape, plannedChanges where relevant
+- Extract into: teamEnablement, keyDependencies, systemsLandscape, plannedChanges, nrr where relevant
 - This is the last discovery phase before diagnosis — make it count`;
 
     case 'diagnosis':
