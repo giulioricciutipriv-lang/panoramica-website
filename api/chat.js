@@ -1,18 +1,15 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// REVENUE ARCHITECT v12 — STAGE-AWARE + STRATEGIC NARRATIVE
+// REVENUE ARCHITECT v13 — HOLISTIC KYC + OPERATING MODEL DESIGN
 //
-// v12 additions over v11:
-// 1. Stage-Awareness: companyStage drives playbook selection, benchmark
-//    injection, and anti-pattern detection. Prevents recommending
-//    enterprise-grade tools to 2-person pre-revenue startups.
-// 2. Pre-Analysis Guardrail: Feasibility checks flag contradictions
-//    (e.g. high growth + limited budget) before report generation.
-// 3. Golden Thread: Every recommendation links to a parent_finding_id.
-// 4. Strategic Narrative: Executive Summary → Current State → Hard Truth
-//    → The Unlock → Risk of Inaction.
-// 5. Narrow Data Sources: Local benchmark library (KBCM, Statista,
-//    Pavilion/BenchSights) injected by stage.
-// 6. Live Audit: Tavily API real-time market data lookup.
+// v13 additions over v12:
+// 1. Rebalanced KYC: discovery now covers people, systems, culture,
+//    roadmap & operating model alongside financial metrics.
+// 2. Input-Extractor Persona: gentle, clever, concise questioning
+//    that seeks situational clarity before diving into numbers.
+// 3. Operating Model Design: new actionable output section that maps
+//    org structure, decision flows, team roles & system architecture.
+// 4. (Retained) Stage-Awareness, Benchmark injection, Anti-patterns,
+//    Strategic Narrative, Golden Thread, Feasibility Guardrails.
 //
 // Architecture:
 // - session.transcript[] = clean array of {role, text} pairs
@@ -140,38 +137,45 @@ const PHASES = {
     display: 'company', next: 'gtm', minTurns: 4,
     checklist: ['businessModel', 'stage', 'revenue', 'teamSize', 'funding'],
     depthTopics: [
-      'Pricing structure and packaging strategy',
-      'Revenue growth trajectory and seasonality',
-      'Team composition: engineering vs commercial ratio',
-      'Competitive landscape and differentiation',
-      'Runway and burn rate implications'
+      'Current company situation: what is working well today and what feels broken or stuck',
+      'Organisational structure and decision-making dynamics — who owns what, where are the dependencies',
+      'Team composition: not just numbers but roles, morale, capability gaps, founder dependency',
+      'Revenue model, pricing structure and packaging strategy',
+      'Revenue trajectory, seasonality, and burn-rate implications',
+      'Competitive landscape, differentiation and market positioning',
+      'Internal systems and tools: what they use today, what is manual, what is automated',
+      'Roadmap and future plans: where the company wants to be in 6-12 months'
     ],
-    description: 'Deep-dive into company DNA: model, revenue, team, funding, pricing, competitive position.'
+    description: 'Deep-dive into company DNA: situation, people, model, revenue, team, funding, systems, roadmap.'
   },
   gtm: {
     display: 'gtm', next: 'sales', minTurns: 4,
     checklist: ['icpTitle', 'salesMotion', 'channels', 'avgDealSize'],
     depthTopics: [
+      'Current GTM reality: what the day-to-day looks like for the people running it',
       'ICP specificity: buyer persona, decision-making unit, budget authority',
-      'Channel effectiveness: which channel has best ROI and why',
-      'Content/marketing strategy and lead generation',
-      'Competitive positioning: why customers choose them over alternatives',
-      'Sales cycle dynamics and deal qualification criteria'
+      'Channel effectiveness: which channel has best ROI and why — and who actually runs each channel',
+      'Content/marketing strategy and lead generation — resources, cadence, ownership',
+      'Competitive positioning: why customers choose them and why they sometimes don\'t',
+      'Marketing and sales tooling: what systems support GTM today, gaps and friction points',
+      'Future GTM plans: new channels, new segments, new hires being considered'
     ],
-    description: 'Map Go-to-Market: ICP depth, channels, positioning, lead gen, deal economics.'
+    description: 'Map Go-to-Market: current reality, ICP depth, channels, people, systems, positioning, lead gen.'
   },
   sales: {
     display: 'sales', next: 'diagnosis', minTurns: 4,
     checklist: ['salesProcess', 'whoCloses', 'mainBottleneck'],
     depthTopics: [
-      'Full sales process walkthrough: each stage and exit criteria',
-      'Founder dependency and delegation readiness',
-      'Win/loss analysis: why deals close or die',
-      'Objection handling and competitive losses',
-      'Tech stack and CRM/automation maturity',
-      'Post-sale: onboarding, retention, expansion'
+      'Current sales reality: a typical week for the person/people who sell — what it actually looks like',
+      'Full sales process walkthrough: each stage, exit criteria, where deals stall',
+      'Founder dependency and delegation readiness — who could take over, what would need to change',
+      'Win/loss analysis: why deals close or die — recent concrete examples',
+      'Team enablement: training, playbooks, coaching — how new hires ramp',
+      'Tech stack and CRM/automation maturity — what is truly used vs shelfware',
+      'Post-sale: onboarding, retention, expansion — who owns the customer after signature',
+      'Planned changes: hires, process improvements, tool migrations on the horizon'
     ],
-    description: 'Analyze Sales Engine: process, people, bottlenecks, tools, retention.'
+    description: 'Analyze Sales Engine: current reality, process, people, enablement, tools, retention, plans.'
   },
   diagnosis: {
     display: 'diagnosis', next: 'pre_finish', minTurns: 2,
@@ -210,6 +214,15 @@ function createSession() {
       revenue: '', revenueGrowth: '', teamSize: '', teamRoles: '', funding: '',
       runway: '', productDescription: '', pricingModel: '', pricingRange: '',
       competitiveLandscape: '', differentiator: '',
+      // Situational / People / Operating Model fields
+      currentSituation: '',       // What is working, what is broken/stuck
+      orgStructure: '',           // How the company is structured, reporting lines
+      decisionMaking: '',         // How decisions get made, bottlenecks
+      keyDependencies: '',        // Key-person risks, founder dependency depth
+      teamMorale: '',             // Culture, energy, retention, hiring challenges
+      systemsLandscape: '',       // Tools, integrations, manual vs automated
+      roadmap: '',                // Where the company wants to be in 6-12 months
+      plannedChanges: '',         // Hires, process or tool changes on the horizon
       icpTitle: '', icpCompanySize: '', icpIndustry: '', icpPainPoints: '',
       icpDecisionProcess: '', icpBudget: '',
       salesMotion: '', channels: '', bestChannel: '', channelROI: '',
@@ -222,6 +235,7 @@ function createSession() {
       churnRate: '', churnReasons: '', expansionRevenue: '',
       crm: '', tools: '', automationLevel: '',
       onboardingProcess: '', customerSuccess: '',
+      teamEnablement: '',         // Training, playbooks, coaching quality
       diagnosedProblems: [], rootCauses: [], validatedProblems: [],
       userPriority: '', pastAttempts: '', constraints: '', additionalContext: '',
       growthTarget: '', budgetLevel: '' // for feasibility checks
@@ -258,6 +272,10 @@ function buildProfileContext(session) {
     ['Funding', p.funding], ['Runway', p.runway],
     ['Product', p.productDescription], ['Pricing', `${p.pricingModel || ''} ${p.pricingRange || ''}`.trim()],
     ['Competitive Landscape', p.competitiveLandscape], ['Differentiator', p.differentiator],
+    ['Current Situation', p.currentSituation], ['Org Structure', p.orgStructure],
+    ['Decision Making', p.decisionMaking], ['Key Dependencies', p.keyDependencies],
+    ['Team Morale/Culture', p.teamMorale], ['Systems Landscape', p.systemsLandscape],
+    ['Roadmap', p.roadmap], ['Planned Changes', p.plannedChanges],
     ['ICP Buyer', p.icpTitle], ['ICP Company Size', p.icpCompanySize],
     ['ICP Industry', p.icpIndustry], ['ICP Pain Points', p.icpPainPoints],
     ['ICP Decision Process', p.icpDecisionProcess], ['ICP Budget', p.icpBudget],
@@ -274,6 +292,7 @@ function buildProfileContext(session) {
     ['Expansion Revenue', p.expansionRevenue],
     ['CRM', p.crm], ['Tools', p.tools], ['Automation Level', p.automationLevel],
     ['Onboarding', p.onboardingProcess], ['Customer Success', p.customerSuccess],
+    ['Team Enablement', p.teamEnablement],
     ['Diagnosed Problems', (p.diagnosedProblems || []).join('; ')],
     ['Root Causes', (p.rootCauses || []).join('; ')],
     ['User Priority', p.userPriority], ['Past Attempts', p.pastAttempts],
@@ -464,7 +483,7 @@ ${turnsLeft > 0 ? `You need at least ${turnsLeft} more turn(s) in this phase. Ta
 ═══ STAGE-AWARE BENCHMARKS FOR THIS COMPANY ═══
 ${stageBenchmarks}
 
-TOPICS TO EXPLORE (one or two per turn, go deep):
+TOPICS TO EXPLORE (one or two per turn, go deep — LEAD WITH SITUATION before numbers):
 ${phase.depthTopics.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}
 
 CHECKLIST STATUS:
@@ -473,16 +492,20 @@ ${phase.checklist.map(k => {
   return has ? `  ✅ ${k}: ${v} (DONE — don't re-ask)` : `  ❓ ${k}: NOT YET COLLECTED`;
 }).join('\n')}
 
-STRATEGY:
-- Ask about ONE missing checklist item per turn
-- But ALSO go deeper on something already answered — ask follow-up questions
+STRATEGY — SITUATION-FIRST DISCOVERY:
+- OPEN WITH THE CURRENT SITUATION: before you ask for numbers, ask what their world looks like right now. "Paint me a picture of a typical week — what's working, what feels stuck?" This naturally surfaces the numbers AND the context around them.
+- When you DO ask for a number, always ask for the STORY behind it. Don't just collect "€20K MRR" — ask how it got there, who drives it, what would break if that person left.
+- Explore PEOPLE dynamics: org structure, who owns what, where decisions get bottlenecked, key-person dependencies. These shape the operating model.
+- Explore SYSTEMS: what tools do they use, what is manual, what is automated, where do things fall through the cracks.
+- Explore ROADMAP: where do they want to be in 6-12 months? What changes are they planning? This reveals ambition vs. capacity gaps.
+- Ask about ONE missing checklist item per turn — but frame it through the lens of their current situation, not as a data-collection exercise.
 - When the user shares their stage, SET profile_updates.companyStage to one of: "pre_seed_idea", "seed_startup", "early_scale", "expansion_enterprise"
 - COMPARE their answers to the BENCHMARKS above. E.g., "Your €15K MRR puts you in the Seed bracket where median churn is 5% — how does yours compare?"
-- If they mention tools/spending that conflicts with their stage, flag it: "At ${stagePlaybook?.label || 'your stage'}, the typical tool spend ceiling is €${stagePlaybook?.playbook?.budgetGuidance?.toolSpend?.max || '?'}/mo"
-- Provide benchmarks from SaaStr, T2D3, OpenView for context
-- Always connect your question to WHY it matters for revenue strategy
+- If they mention tools/spending that conflicts with their stage, flag it diplomatically.
+- Always connect your question to WHY it matters for their operating model and revenue strategy.
+- Extract situational data into: currentSituation, orgStructure, decisionMaking, keyDependencies, teamMorale, systemsLandscape, roadmap, plannedChanges
 
-DO NOT rush. This phase should feel like a thorough discovery call.`;
+DO NOT rush. This phase should feel like a thoughtful conversation, not an interrogation.`;
 
     case 'gtm':
       return `PHASE: GO-TO-MARKET (Turn ${S.phaseTurns + 1} of minimum ${phase.minTurns})
@@ -509,14 +532,18 @@ ${phase.checklist.map(k => {
   return has ? `  ✅ ${k}: ${v} (DONE)` : `  ❓ ${k}: NEEDED`;
 }).join('\n')}
 
-STRATEGY:
+STRATEGY — PEOPLE & SYSTEMS LENS ON GTM:
 - Start this phase with a brief transition: summarize company DNA, then pivot to GTM
-- COMPARE their ICP and channels to stage benchmarks: e.g., "At ${stagePlaybook?.label || 'your stage'}, median deal size is €${stagePlaybook?.benchmarks?.avgDealSize?.median || '?'} — yours is ${p.avgDealSize || 'unknown'}"
-- For ICP: push for specificity. Not "marketing people" but "Head of Demand Gen at B2B SaaS, 50-200 employees, Series A funded"
-- For channels: don't just ask WHICH channels — ask about PERFORMANCE. "Which channel brings the highest quality leads? What's the conversion rate from each?"
+- LEAD WITH REALITY: "Walk me through what a lead's journey actually looks like today — from the moment they hear about you to first conversation." This surfaces process AND people AND systems.
+- For ICP: push for specificity. Not "marketing people" but "Head of Demand Gen at B2B SaaS, 50-200 employees, Series A funded." Ask WHO in their team knows the ICP best and why.
+- For channels: don't just ask WHICH channels — ask WHO runs each channel, what SYSTEMS support it, and where things break down.
+- COMPARE to stage benchmarks: e.g., "At ${stagePlaybook?.label || 'your stage'}, median deal size is €${stagePlaybook?.benchmarks?.avgDealSize?.median || '?'} — yours is ${p.avgDealSize || 'unknown'}"
+- Probe GTM SYSTEMS: What tools support marketing and sales handoff? Is there a CRM? How are leads tracked? What's manual vs. automated?
+- Ask about PLANNED GTM CHANGES: new channels, new hires, new tools being evaluated.
 - Reference April Dunford positioning framework, Jobs-to-be-Done
 - Ask about competitive wins/losses: "When you lose a deal, who do you lose to and why?"
-- FLAG ANTI-PATTERNS if detected: ${antiPatterns.slice(0, 3).join('; ')}`;
+- FLAG ANTI-PATTERNS if detected: ${antiPatterns.slice(0, 3).join('; ')}
+- Extract into: systemsLandscape, plannedChanges, teamMorale where relevant`;
 
     case 'sales':
       return `PHASE: SALES ENGINE (Turn ${S.phaseTurns + 1} of minimum ${phase.minTurns})
@@ -539,14 +566,17 @@ ${phase.checklist.map(k => {
   return has ? `  ✅ ${k}: ${v} (DONE)` : `  ❓ ${k}: NEEDED`;
 }).join('\n')}
 
-STRATEGY:
-- Ask for a WALKTHROUGH: "Take me through a recent deal from first touch to signature"
+STRATEGY — ENABLEMENT, REALITY & OPERATING MODEL:
+- Ask for a WALKTHROUGH: "Take me through a recent deal from first touch to signature — who was involved at each step?"
+- Focus on PEOPLE: Who actually does the selling? How enabled are they — do they have playbooks, training, coaching? What happens when the founder steps away?
+- Focus on SYSTEMS: What\'s in the CRM vs. what\'s in someone\'s head? What is truly used vs. shelfware? Where does data fall through?
 - COMPARE their sales metrics to benchmarks: win rate (median ${stagePlaybook?.benchmarks?.winRate?.median || '?'}%), sales cycle (median ${stagePlaybook?.benchmarks?.salesCycleDays?.median || '?'} days), CAC (median €${stagePlaybook?.benchmarks?.cac?.median || '?'})
 - For bottleneck: make a HYPOTHESIS first, then ask: "Based on everything, I suspect [X] because [Y]. Am I right?"
-- If they mention tools that don't match their stage, flag it. Recommended stack: ${stagePlaybook?.playbook?.techStack?.slice(0, 3).join(', ') || 'N/A'}
-- Ask about post-sale: onboarding, churn, expansion — this is often overlooked but critical
+- Ask about post-sale: onboarding, churn, expansion — WHO owns the customer after signature?
+- Probe PLANNED CHANGES: new hires, process overhauls, tool migrations they are considering.
 - Reference MEDDPICC for process evaluation
 - FLAG ANTI-PATTERNS: ${antiPatterns.slice(0, 3).join('; ')}
+- Extract into: teamEnablement, keyDependencies, systemsLandscape, plannedChanges where relevant
 - This is the last discovery phase before diagnosis — make it count`;
 
     case 'diagnosis':
@@ -563,16 +593,18 @@ ${antiPatterns.map(ap => `  ⛔ ${ap}`).join('\n')}
 
 STRUCTURE (follow exactly):
 1. Opening: "Ecco la mia diagnosi" / "Here is my diagnostic assessment"
-2. COMPANY SNAPSHOT: 4-5 sentences summarizing everything using ONLY ✅ confirmed data
+2. COMPANY SNAPSHOT: 4-5 sentences summarizing everything using ONLY ✅ confirmed data — include the human and operational reality, not just the numbers.
 3. THREE REVENUE PROBLEMS — for each:
    - **Bold problem name** with a finding_id (F1, F2, F3)
-   - Why it exists (root cause — reference what USER told you specifically)
+   - Why it exists (root cause — reference what USER told you specifically, including people/systems/process factors)
    - Revenue impact (estimate with reasoning, or qualitative if no data)
    - **Benchmark comparison**: compare their reality to stage benchmarks above
    - Severity: 🔴 Critical / 🟡 High / 🟢 Medium
    - **Anti-pattern check**: flag if this problem maps to a known anti-pattern for their stage
-4. CORE HYPOTHESIS: one bold sentence connecting all three problems
-5. Ask: "Does this resonate? What did I get right, and what did I miss?"
+   - **Operating model implication**: briefly note how this problem relates to their org structure, people, or systems
+4. OPERATING MODEL OBSERVATION: 2-3 sentences on how their current org structure, decision-making, and systems landscape either enable or constrain their revenue engine. Reference confirmed data about people, key dependencies, and tools.
+5. CORE HYPOTHESIS: one bold sentence connecting all three problems AND the operating model observation.
+6. Ask: "Does this resonate? What did I get right, and what did I miss?"
 
 Set phase_signals.diagnosis_presented = true
 Set profile_updates.diagnosedProblems = ["F1: Problem 1 name", "F2: Problem 2 name", "F3: Problem 3 name"]
@@ -604,11 +636,12 @@ Company Stage: ${stagePlaybook?.label || '?'}
 Focus for this stage: ${stagePlaybook?.playbook?.focus || '?'}
 
 Present complete picture using ONLY confirmed data:
-1. Company snapshot
+1. Company snapshot — include both the numbers AND the human/operational reality
 2. Three diagnosed problems in priority order (reference finding IDs: F1, F2, F3)
-3. For each problem, tease ONE actionable recommendation appropriate to their stage
-4. Preview: "Your Strategic Growth Plan will include: strategic narrative, diagnostic findings with benchmark comparison, 90-day roadmap with second-order effects, metrics dashboard, tool recommendations calibrated to your ${stagePlaybook?.label || ''} stage"
-5. Ask: "Ready to generate?"
+3. For each problem, tease ONE actionable recommendation appropriate to their stage — connect it to people, process, or systems where relevant
+4. Operating Model snapshot: 2-3 sentences on how their current org design, decision flows, and systems either support or hinder growth
+5. Preview: "Your Strategic Growth Plan will include: strategic narrative, diagnostic findings with benchmark comparison, **Operating Model Design** (org structure recommendations, role clarity, decision-flow optimisation, systems architecture), 90-day roadmap with second-order effects, metrics dashboard, tool recommendations calibrated to your ${stagePlaybook?.label || ''} stage"
+6. Ask: "Ready to generate?"
 
 MUST include button: {"key":"generate_report","label":"📥 Generate Strategic Growth Plan"}
 Also: {"key":"add_context","label":"I want to add more context first"}`;
@@ -743,9 +776,13 @@ export default async function handler(req, res) {
     const profileCtx = buildProfileContext(S);
     const phasePrompt = getPhasePrompt(S);
 
-    const fullPrompt = `You are the REVENUE ARCHITECT, a senior B2B revenue strategist (20+ years). You conduct deep discovery calls with founders and revenue leaders. Your style is direct, analytical, and specific — like a top-tier consultant who has seen hundreds of companies.
+    const fullPrompt = `You are the REVENUE ARCHITECT, a senior B2B revenue strategist and operating-model advisor (20+ years). You conduct deep discovery calls with founders and revenue leaders. Your style blends the rigour of a top-tier consultant with the warmth of a trusted advisor: **gentle** in tone, **clever** in the connections you draw, and **concise** in your questions — one sharp question is worth five generic ones.
 
-You know: MEDDPICC, Bow-Tie funnel, T2D3, SaaStr benchmarks, April Dunford positioning, Pirate Metrics (AARRR), David Sacks metrics (Burn Multiple, Magic Number, Rule of 40). You reference these naturally.
+You are not just a data collector. You are an INPUT EXTRACTOR: you help founders articulate what they often struggle to put into words — the real situation behind the numbers. You listen for what is said AND what is left unsaid. When something feels incomplete, you probe with curiosity, not pressure.
+
+Your discovery philosophy: SITUATION FIRST, NUMBERS SECOND. Understand the current reality — people, systems, decision-making, culture, roadmap — and the metrics will land with meaning. A number without context is just noise.
+
+You know: MEDDPICC, Bow-Tie funnel, T2D3, SaaStr benchmarks, April Dunford positioning, Pirate Metrics (AARRR), David Sacks metrics (Burn Multiple, Magic Number, Rule of 40), Operating Model Canvas. You reference these naturally.
 
 You have access to NARROW BENCHMARK DATA from KBCM SaaS Survey, Statista, Pavilion/BenchSights, OpenView, and Bessemer Cloud Index. USE THESE to validate or challenge the user's claims. Compare their numbers to stage-appropriate medians.
 
@@ -805,7 +842,12 @@ ${choice !== 'SNAPSHOT_INIT' ? `═══ USER'S LATEST MESSAGE ═══\n"${ch
 12. If the user attached files, acknowledge them first and ask what they contain and why they're relevant.
 13. When extracting stage info, set profile_updates.companyStage to one of: "pre_seed_idea", "seed_startup", "early_scale", "expansion_enterprise"
 14. Always compare the user's numbers to STAGE-APPROPRIATE benchmarks. E.g., "Your 7% monthly churn is above the ${S.resolvedStage ? getStagePlaybook(S.resolvedStage)?.label : 'stage'} median of X%"
-15. Flag ANTI-PATTERNS: if the user describes behavior that conflicts with their stage's playbook, call it out diplomatically.`;
+15. Flag ANTI-PATTERNS: if the user describes behavior that conflicts with their stage's playbook, call it out diplomatically.
+16. SITUATION BEFORE NUMBERS: always seek to understand WHY a number is what it is. Ask about the people, processes, and systems behind it. "Who drives that revenue?" is as important as "How much revenue?"
+17. EXTRACT OPERATING MODEL DATA: when the user describes their team, roles, decision-making, org structure, or tools — capture it in profile_updates using: currentSituation, orgStructure, decisionMaking, keyDependencies, teamMorale, systemsLandscape, roadmap, plannedChanges, teamEnablement.
+18. BE CONCISE IN YOUR QUESTIONS: ask one powerful question per topic, not three weak ones. Let the founder talk. Your job is to draw out clarity, not to fill silence.
+19. GENTLE CHALLENGE: when something doesn't add up, challenge with curiosity not confrontation. "That's an unusual pattern at your stage — help me understand what's driving it."`;
+
 
     // ══════════════════════════════════════════════════
     // CALL LLM
@@ -946,13 +988,16 @@ function calcConf(S) {
   // Weighted: core fields worth more, depth fields worth less
   const core = ['companyName', 'businessModel', 'stage', 'companyStage', 'revenue', 'teamSize', 'funding',
     'icpTitle', 'salesMotion', 'channels', 'avgDealSize',
-    'salesProcess', 'whoCloses', 'mainBottleneck']; // 14 items, 4 pts each = 56
+    'salesProcess', 'whoCloses', 'mainBottleneck',
+    'currentSituation', 'orgStructure']; // 16 items, 4 pts each = 64
   const depth = ['teamRoles', 'pricingModel', 'revenueGrowth', 'competitiveLandscape',
     'icpCompanySize', 'icpPainPoints', 'bestChannel', 'salesCycle',
     'winRate', 'lostDealReasons', 'churnRate', 'crm', 'tools',
-    'budgetLevel', 'constraints']; // 15 items, 2 pts each = 30
+    'budgetLevel', 'constraints',
+    'decisionMaking', 'keyDependencies', 'teamMorale', 'systemsLandscape',
+    'roadmap', 'plannedChanges', 'teamEnablement']; // 22 items, 2 pts each = 44
   const milestones = ['diagnosedProblems', 'userPriority']; // 2 items, 6 pts each = 12
-  // Total possible: 56 + 30 + 12 = 98 pts → normalized to 100%
+  // Total possible: 64 + 44 + 12 = 120 pts → normalized to 100%
 
   let score = 0;
   for (const k of core) { const v = p[k]; if (v && v.trim()) score += 4; }
@@ -962,5 +1007,5 @@ function calcConf(S) {
     if (Array.isArray(v) ? v.length > 0 : (v && v.trim())) score += 6;
   }
 
-  return { total: Math.min(100, Math.round((score / 98) * 100)) };
+  return { total: Math.min(100, Math.round((score / 120) * 100)) };
 }
