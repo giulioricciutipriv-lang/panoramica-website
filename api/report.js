@@ -811,20 +811,34 @@ Reference confirmed data only.
 
 CRITICAL: Every recommendation MUST trace back to a parent finding via finding_id. No orphaned recommendations.
 
+CREATIVITY MANDATE: Go BEYOND classic GTM playbooks. The user is paying for strategic insight they cannot Google. For each priority:
+- Start with the OBVIOUS play (what any consultant would say), then ELEVATE IT with a creative twist that fits their specific situation.
+- Think adjacently: what would a company in a DIFFERENT industry do with this same problem? What counterintuitive approach could work?
+- Consider asymmetric bets: low-cost experiments with outsized upside potential.
+- Look for leverage points that multiply impact — one action that solves multiple findings simultaneously.
+- Reference real-world unconventional tactics: co-opetition strategies, community-led motions, reverse trials, customer-as-channel models, founder-brand plays, micro-partnerships, content flywheels, signal-based outbound, dark social strategies, product-led narratives, etc.
+- If the company's stage/resources suggest a traditional play won't work, propose the scrappy alternative that will.
+
 ### Priority 1: [Based on user's stated priority: "${has(p.userPriority) || 'not specified'}"] — Weeks 1-4
 - **parent_finding_id:** F[N]
+- **the_obvious_play:** What the standard playbook says
+- **the_creative_edge:** The non-obvious twist or unconventional approach that makes this recommendation uniquely powerful for THIS company
 - **trade_off / negative_externality:** What is the downside or tension?
 - **prerequisite_for:** What does completing this enable in Priority 2?
 - Week-by-week plan with specific actions, deliverables, success metrics
 
 ### Priority 2 — Weeks 4-8
 - **parent_finding_id:** F[N]
+- **the_obvious_play:** [standard approach]
+- **the_creative_edge:** [the unconventional angle]
 - **trade_off / negative_externality:** [specific tension]
 - **depends_on:** What from Priority 1 must be done first?
 - **prerequisite_for:** What does this enable in Priority 3?
 
 ### Priority 3 — Weeks 8-12
 - **parent_finding_id:** F[N]
+- **the_obvious_play:** [standard approach]
+- **the_creative_edge:** [the unconventional angle]
 - **trade_off / negative_externality:** [specific tension]
 - **depends_on:** What from Priority 2 must be done first?
 
@@ -916,17 +930,34 @@ Connect EVERY operating model recommendation to a parent_finding_id (F1, F2, F3)
 
 ## Recommended Tools — Stage-Calibrated
 
+Do NOT just list tools. For each tool, show HOW it fits into a workflow — the trigger, the action, and the outcome. The user needs to see their future operating rhythm, not a shopping list.
+
 | Category | Tool | ~Cost/mo | Why | Stage Fit |
-|----------|------|----------|-----|-----------|
+|----------|------|----------|-----|----------|
 [Tools appropriate for ${stageData?.label || 'their'} stage. Max ~€${stageData?.playbook?.budgetGuidance?.toolSpend?.max || '?'}/mo total]
+
+### Workflow Architecture
+
+For each major tool combination above, describe the WORKFLOW it enables. Use this format:
+
+**Workflow: [Name — e.g. "Signal-to-Meeting Pipeline"]**
+→ Trigger: [What starts the workflow — e.g. "Lead scores above 50 in HubSpot" or "Champion visits pricing page 3x"]
+→ Action Chain: [What happens automatically and what requires human input — e.g. "Auto-enrich via Clay → Slack alert to AE → Personalized sequence via Instantly"]
+→ Owner: [Who is responsible for this workflow]
+→ Outcome: [What success looks like — e.g. "Qualified meeting booked within 48h of trigger"]
+→ Connects To: [Next workflow in the chain — e.g. "feeds into Deal Progression workflow"]
+
+Design 3-4 core workflows that form the OPERATING BACKBONE — these should chain together into a coherent system, not sit in isolation. Show how data flows between workflows.
+
+IMPORTANT: Keep workflow descriptions conceptual and outcome-oriented. Do NOT write step-by-step setup instructions or click-by-click guides. The user should understand WHAT the machine looks like when running, not how to build it.
 
 ---
 
 ## Quick Wins
 
-| # | Action | parent_finding_id | Expected Impact | Effort |
-|---|--------|-------------------|-----------------|--------|
-[5 high-impact actions executable this week]
+| # | Action | parent_finding_id | Expected Impact | Effort | Creative Angle |
+|---|--------|-------------------|-----------------|--------|----------------|
+[5 high-impact actions executable this week. At least 2 should be NON-OBVIOUS — things competitors aren't doing. The "Creative Angle" column should explain WHY this is smarter than the standard approach.]
 
 ---
 
@@ -956,6 +987,9 @@ ANTI-HALLUCINATION RULES
 9. TRADE-OFFS: Every priority must include a negative_externality.
 10. SECOND-ORDER EFFECTS: Month 1 must enable Month 2, Month 2 must enable Month 3. Not a flat list.
 11. STAGE-CALIBRATION: All benchmarks, tools, and budget guidance must fit ${stageData?.label || 'their'} stage.
+18. CREATIVITY OVER PLAYBOOK: Do NOT produce generic GTM advice anyone could find in a blog post. Every recommendation section must contain at least one insight that is SPECIFIC to this company's unique situation and would surprise the reader. Think like a fractional CRO who has seen 200 companies — what pattern-matched insight applies here?
+19. TOOL WORKFLOWS: When recommending tools, ALWAYS describe the workflow they enable — trigger, action chain, owner, outcome. A tool without a workflow is shelfware. Show 3-4 interconnected workflows that form the company's new operating backbone.
+20. ACTIONABLE ≠ GENERIC: "Improve your sales process" is not actionable. "Run a 2-week pipeline audit where your AE records every objection verbatim, then cluster them into 3 categories to build an objection-handling playbook" is actionable. Every recommendation must pass the test: could someone START executing this tomorrow morning?
 12. FEASIBILITY FLAGS: Address detected contradictions explicitly. Do not produce a roadmap that ignores them.
 13. Use NARROW BENCHMARK DATA from KBCM, Statista, Pavilion. Cite the source.
 14. BENCHMARK SCORECARD: Embed the pre-computed scorecard with visual gauges. Add narrative interpretation connecting gaps to findings.
