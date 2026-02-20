@@ -44,6 +44,11 @@
             .prose{font-size:.875rem;line-height:1.6}
             .phase-labels{display:none!important}
         }
+        /* Go-back button */
+        .back-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;font-size:13px;color:#888;background:transparent;border:1px solid transparent;border-radius:10px;cursor:pointer;transition:all .2s ease;user-select:none}
+        .back-btn:hover{color:#CDFF00;border-color:rgba(205,255,0,.2);background:rgba(205,255,0,.04)}
+        .back-btn svg{transition:transform .2s ease}
+        .back-btn:hover svg{transform:translateX(-3px)}
     </style>
     <script src="auth-check.js"></script>
 </head>
@@ -164,6 +169,8 @@
     let diag = {};        // Initial diagnostic data (website, desc, linkedin)
     let lastMD = '';      // Last report markdown for re-download
     let attachedFiles = []; // Files to be sent with next message
+    let stateStack = [];      // Stack for go-back functionality
+    let currentDisplay = null; // Current displayed response data
 
     // ═══════════════════════════════════════════════════════════════
     // DOM HELPERS
@@ -285,11 +292,56 @@
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // GO BACK FUNCTIONALITY
+    // ═══════════════════════════════════════════════════════════════
+    function saveStateBeforePick() {
+        if (!currentDisplay) return;
+        stateStack.push({
+            H: JSON.parse(JSON.stringify(H)),
+            S: S ? JSON.parse(JSON.stringify(S)) : null,
+            msgCount: msgs.children.length,
+            display: JSON.parse(JSON.stringify(currentDisplay))
+        });
+    }
+
+    function goBack() {
+        if (stateStack.length === 0 || busy) return;
+        const prev = stateStack.pop();
+
+        // Restore conversation state
+        H = prev.H;
+        S = prev.S;
+
+        // Remove messages added since snapshot
+        while (msgs.children.length > prev.msgCount) {
+            msgs.removeChild(msgs.lastChild);
+        }
+
+        // Restore display
+        currentDisplay = prev.display;
+        updPhase(prev.display.current_phase, prev.display.confidence_state);
+        showOpts(prev.display.options, prev.display.allowText);
+        $('st').textContent = 'READY';
+        scroll();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // OPTIONS DISPLAY
     // ═══════════════════════════════════════════════════════════════
     function showOpts(list, allowText) {
         opts.innerHTML = '';
         inp.classList.add('hidden', 'opacity-0');
+
+        // Render go-back button if history exists
+        if (stateStack.length > 0) {
+            const backBtn = document.createElement('button');
+            backBtn.className = 'back-btn mi';
+            backBtn.onclick = goBack;
+            backBtn.innerHTML = `
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
+                <span>Previous question</span>`;
+            opts.appendChild(backBtn);
+        }
 
         const items = list || [];
         // Separate primary (report/restart) buttons from regular options
@@ -427,6 +479,8 @@
         if (key === 'restart') { location.reload(); return; }
         if (key === 'download_again') { genPDF(); return; }
 
+        const stackLenBefore = stateStack.length;
+        saveStateBeforePick();
         busy = true;
         addU(label || key);
         typing(true);
@@ -450,10 +504,18 @@
             typing(false);
             updPhase(data.current_phase, data.confidence_state);
             addA(data.message);
+            currentDisplay = {
+                message: data.message,
+                options: data.options,
+                allowText: data.allow_text !== false && data.mode !== 'buttons',
+                current_phase: data.current_phase,
+                confidence_state: data.confidence_state
+            };
             showOpts(data.options, data.allow_text !== false && data.mode !== 'buttons');
             $('st').textContent = 'READY';
 
         } catch (e) {
+            if (stateStack.length > stackLenBefore) stateStack.pop();
             console.error('[pick error]', e);
             typing(false);
             $('st').textContent = 'ERROR';
@@ -563,6 +625,8 @@
 
     async function pickWithFiles(key, label) {
         if (busy) return;
+        const stackLenBefore = stateStack.length;
+        saveStateBeforePick();
         busy = true;
 
         // Build user message with file info
@@ -596,10 +660,18 @@
             typing(false);
             updPhase(data.current_phase, data.confidence_state);
             addA(data.message);
+            currentDisplay = {
+                message: data.message,
+                options: data.options,
+                allowText: data.allow_text !== false && data.mode !== 'buttons',
+                current_phase: data.current_phase,
+                confidence_state: data.confidence_state
+            };
             showOpts(data.options, data.allow_text !== false && data.mode !== 'buttons');
             $('st').textContent = 'READY';
 
         } catch (e) {
+            if (stateStack.length > stackLenBefore) stateStack.pop();
             console.error('[pickWithFiles error]', e);
             typing(false);
             $('st').textContent = 'ERROR';
@@ -661,6 +733,13 @@
 
             updPhase(data.current_phase, data.confidence_state);
             addA(data.message);
+            currentDisplay = {
+                message: data.message,
+                options: data.options,
+                allowText: data.allow_text !== false && data.mode !== 'buttons',
+                current_phase: data.current_phase,
+                confidence_state: data.confidence_state
+            };
             showOpts(data.options, data.allow_text !== false && data.mode !== 'buttons');
             $('st').textContent = 'READY';
 
