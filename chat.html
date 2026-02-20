@@ -49,6 +49,23 @@
         .back-btn:hover{color:#CDFF00;border-color:rgba(205,255,0,.2);background:rgba(205,255,0,.04)}
         .back-btn svg{transition:transform .2s ease}
         .back-btn:hover svg{transform:translateX(-3px)}
+        /* Instructions modal */
+        .instr-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .3s ease}
+        .instr-overlay.open{opacity:1;pointer-events:auto}
+        .instr-panel{background:#0A0A0A;border:1px solid #1A1A1A;border-radius:20px;width:100%;max-width:620px;max-height:85vh;overflow-y:auto;position:relative;transform:translateY(20px) scale(.97);transition:transform .3s cubic-bezier(.16,1,.3,1);box-shadow:0 32px 80px rgba(0,0,0,.6)}
+        .instr-overlay.open .instr-panel{transform:translateY(0) scale(1)}
+        .instr-panel::-webkit-scrollbar{width:5px}.instr-panel::-webkit-scrollbar-track{background:transparent}.instr-panel::-webkit-scrollbar-thumb{background:#2A2A2A;border-radius:3px}
+        .instr-panel h3{color:#fff;font-size:1rem;font-weight:600;margin:1.1em 0 .4em}.instr-panel h3:first-of-type{margin-top:0}
+        .instr-panel p,.instr-panel li{color:#C0C0C0;font-size:.875rem;line-height:1.65}
+        .instr-panel ul{list-style:disc;padding-left:1.4em;margin:.4em 0 1em}
+        .instr-panel li{margin-bottom:.35em}
+        .instr-panel li::marker{color:#CDFF00}
+        .instr-panel strong{color:#fff;font-weight:600}
+        .instr-panel a{color:#CDFF00;text-decoration:underline}
+        .instr-panel a:hover{color:#fff}
+        .instr-panel .tag{display:inline-block;background:rgba(205,255,0,.1);color:#CDFF00;font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.05em}
+        .instr-btn{display:flex;align-items:center;gap:5px;padding:6px 10px;font-size:12px;color:#888;background:transparent;border:1px solid transparent;border-radius:8px;cursor:pointer;transition:all .2s ease;user-select:none}
+        .instr-btn:hover{color:#CDFF00;border-color:rgba(205,255,0,.2);background:rgba(205,255,0,.04)}
     </style>
     <script src="auth-check.js"></script>
 </head>
@@ -100,6 +117,61 @@
         </div>
     </div>
 
+    <!-- ═══════════════════ INSTRUCTIONS OVERLAY ═══════════════════ -->
+    <div id="instrOverlay" class="instr-overlay" onclick="if(event.target===this)toggleInstructions()">
+        <div class="instr-panel">
+            <div class="sticky top-0 bg-[#0A0A0A] z-10 flex items-center justify-between px-6 pt-5 pb-3 border-b border-p-bdr">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 bg-p-lime/10 border border-p-lime/30 rounded-xl flex items-center justify-center text-p-lime shrink-0">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 16v.01M12 12a2 2 0 10-2-2"/></svg>
+                    </div>
+                    <span class="font-semibold text-sm">How to Use the GTM Clarity Agents</span>
+                </div>
+                <button onclick="toggleInstructions()" class="text-p-grey hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-1">
+                <h3>1. Open the Panoramica Website</h3>
+                <p>Go to: <a href="https://panoramica-website-1.vercel.app/" target="_blank">https://panoramica-website-1.vercel.app/</a></p>
+                <p>For the best experience, <strong>use a PC</strong> rather than a phone.</p>
+
+                <h3>2. Enter the Password</h3>
+                <p style="font-family:'JetBrains Mono',monospace;background:#141414;border:1px solid #1A1A1A;padding:8px 14px;border-radius:10px;color:#CDFF00;font-size:.8rem;margin:.5em 0;user-select:all">PanoramicaSolutionsLolloGiulio2026</p>
+
+                <h3>3. Start the Guided Session</h3>
+                <ul>
+                    <li>Look for the <strong>"Start Here"</strong> button on the homepage.</li>
+                    <li>Click it to launch the interactive GTM Clarity session.</li>
+                </ul>
+
+                <h3>4. How the Session Works</h3>
+                <p>The guided flow will:</p>
+                <ul>
+                    <li>Ask questions about your company, client, or GTM situation</li>
+                    <li>Help you clarify where your biggest opportunities and bottlenecks are</li>
+                    <li>Use your inputs to shape a personalized GTM strategy</li>
+                    <li>Produce a <strong>90&#8209;day roadmap</strong> at the end</li>
+                </ul>
+                <p>The full experience takes around <strong>20 minutes</strong>.</p>
+
+                <h3>5. How to Get the Best Results</h3>
+                <p>You can interact in two ways:</p>
+
+                <div style="display:flex;gap:10px;margin:.8em 0 .2em;flex-wrap:wrap">
+                    <div style="flex:1;min-width:200px;background:#0F0F0F;border:1px solid #1A1A1A;border-radius:12px;padding:14px">
+                        <p style="margin:0 0 4px"><strong>Option A &#8212; Use the Buttons</strong></p>
+                        <p style="margin:0;font-size:.8rem;color:#999">Quick and easy, but less detailed.</p>
+                    </div>
+                    <div style="flex:1;min-width:200px;background:#0F0F0F;border:1px solid rgba(205,255,0,.25);border-radius:12px;padding:14px">
+                        <p style="margin:0 0 4px"><strong>Option B &#8212; Add Context Manually</strong> <span class="tag">Recommended</span></p>
+                        <p style="margin:0;font-size:.8rem;color:#999">Typing your own context produces much higher&#8209;quality insights and a more accurate roadmap. This is the method that unlocks the real value of the agents.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ═══════════════════ HEADER ═══════════════════ -->
     <header class="h-14 border-b border-p-bdr bg-p-bg/90 backdrop-blur-md flex items-center justify-between px-4 md:px-6 z-40 shrink-0">
         <div class="flex items-center gap-3">
@@ -128,6 +200,10 @@
         </div>
         <div class="flex items-center gap-3">
             <span id="tn" class="text-[10px] font-mono text-p-grey"></span>
+            <button onclick="toggleInstructions()" class="instr-btn" title="How to use">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 16v.01M12 12a2 2 0 10-2-2"/></svg>
+                <span class="hidden sm:inline">Guide</span>
+            </button>
             <button onclick="confirmReset()" class="text-xs text-p-grey hover:text-white border border-p-bdr px-3 py-1.5 rounded-lg hover:bg-white/5 transition">Reset</button>
         </div>
     </header>
@@ -923,6 +999,17 @@ code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-size: 9pt
         a.click();
         URL.revokeObjectURL(u);
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // INSTRUCTIONS PANEL TOGGLE
+    // ═══════════════════════════════════════════════════════════════
+    function toggleInstructions() {
+        const ov = $('instrOverlay');
+        ov.classList.toggle('open');
+    }
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && $('instrOverlay').classList.contains('open')) toggleInstructions();
+    });
 
     // Warn before leaving
     window.addEventListener('beforeunload', e => {
