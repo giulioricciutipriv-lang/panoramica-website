@@ -78,8 +78,18 @@
                         <textarea id="f-desc" rows="2" placeholder="What you sell, who you sell to, how you make money..." class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none placeholder:text-gray-600 resize-none transition-colors"></textarea>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">LinkedIn Company Page <span class="text-p-grey text-[10px]">OPTIONAL</span></label>
-                        <input type="url" id="f-li" placeholder="https://linkedin.com/company/..." class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none placeholder:text-gray-600 transition-colors">
+                        <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Company Stage <span class="text-red-400">*</span></label>
+                        <select id="f-stage" required class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none transition-colors appearance-none cursor-pointer" style='background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 fill=%27%23888%27 viewBox=%270 0 16 16%27%3E%3Cpath d=%27M8 11L3 6h10z%27/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center'>
+                            <option value="" disabled selected class="text-gray-600">Select your stage</option>
+                            <option value="pre_seed">Pre-Seed / Idea</option>
+                            <option value="seed">Seed / Startup</option>
+                            <option value="early_scale">Early Scale</option>
+                            <option value="expansion">Expansion / Enterprise</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Your LinkedIn Profile <span class="text-p-grey text-[10px]">OPTIONAL</span></label>
+                        <input type="url" id="f-li" placeholder="https://linkedin.com/in/yourname" class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none placeholder:text-gray-600 transition-colors">
                     </div>
                     <button type="submit" id="f-btn" class="w-full bg-p-lime text-black font-bold py-4 rounded-xl hover:bg-p-lime2 transition-all shadow-[0_0_40px_rgba(205,255,0,.15)] flex items-center justify-center gap-2 mt-2">
                         <span>Start Diagnostic</span>
@@ -701,9 +711,11 @@
         const w = $('f-web').value.trim();
         const d = $('f-desc').value.trim();
         const l = $('f-li').value.trim();
+        const s = $('f-stage').value;
 
         // Validate URL
         try { new URL(w); } catch { alert('Please enter a valid URL'); return; }
+        if (!s) { alert('Please select your company stage'); return; }
 
         // Disable button
         $('f-btn').disabled = true;
@@ -718,7 +730,7 @@
         loading('SCANNING WEBSITE...');
         $('st').textContent = 'SCANNING';
 
-        diag = { website: w, description: d, linkedin: l };
+        diag = { website: w, description: d, linkedin: l, stage: s };
 
         try {
             const data = await api({
