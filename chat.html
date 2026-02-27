@@ -49,6 +49,9 @@
         .back-btn:hover{color:#CDFF00;border-color:rgba(205,255,0,.2);background:rgba(205,255,0,.04)}
         .back-btn svg{transition:transform .2s ease}
         .back-btn:hover svg{transform:translateX(-3px)}
+        /* Answer selection cache - previously selected option highlight */
+        .opt-selected{border-color:rgba(205,255,0,.45)!important;background:rgba(205,255,0,.06)!important;box-shadow:0 0 12px rgba(205,255,0,.08)}
+        .opt-selected:hover{border-color:rgba(205,255,0,.6)!important}
         /* Instructions modal */
         .instr-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .3s ease}
         .instr-overlay.open{opacity:1;pointer-events:auto}
@@ -66,6 +69,69 @@
         .instr-panel .tag{display:inline-block;background:rgba(205,255,0,.1);color:#CDFF00;font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.05em}
         .instr-btn{display:flex;align-items:center;gap:5px;padding:6px 10px;font-size:12px;color:#888;background:transparent;border:1px solid transparent;border-radius:8px;cursor:pointer;transition:all .2s ease;user-select:none}
         .instr-btn:hover{color:#CDFF00;border-color:rgba(205,255,0,.2);background:rgba(205,255,0,.04)}
+        /* Glossary term highlight */
+        .glossary-term{color:#CDFF00;border-bottom:1px dashed rgba(205,255,0,.35);cursor:help;transition:border-color .2s}
+        .glossary-term:hover{border-bottom-color:#CDFF00}
+        /* Glossary tooltip */
+        .gloss-tip{position:fixed;z-index:300;background:#0A0A0A;border:1px solid #2A2A2A;border-radius:14px;padding:16px 18px;max-width:340px;width:max-content;box-shadow:0 20px 60px rgba(0,0,0,.7);pointer-events:auto;opacity:0;transform:translateY(6px);transition:opacity .2s ease,transform .2s ease}
+        .gloss-tip.show{opacity:1;transform:translateY(0)}
+        .gloss-tip .gt-abbr{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#CDFF00;font-weight:700;margin-bottom:2px}
+        .gloss-tip .gt-full{font-size:13px;color:#fff;font-weight:600;margin-bottom:8px}
+        .gloss-tip .gt-def{font-size:12px;color:#C0C0C0;line-height:1.55;margin-bottom:8px}
+        .gloss-tip .gt-ex{font-size:11px;color:#888;line-height:1.5;padding:8px 10px;background:#141414;border-radius:8px;margin-bottom:6px}
+        .gloss-tip .gt-bm{font-size:11px;color:#CDFF00;font-weight:500}
+        .gloss-tip .gt-close{position:absolute;top:8px;right:10px;background:none;border:none;color:#555;font-size:16px;cursor:pointer;line-height:1;padding:2px}
+        .gloss-tip .gt-close:hover{color:#fff}
+        /* Glossary sidebar */
+        .gloss-sidebar{position:fixed;top:0;right:0;bottom:0;z-index:250;width:360px;max-width:92vw;background:#0A0A0A;border-left:1px solid #1A1A1A;transform:translateX(100%);transition:transform .3s cubic-bezier(.16,1,.3,1);display:flex;flex-direction:column;box-shadow:-20px 0 60px rgba(0,0,0,.5)}
+        .gloss-sidebar.open{transform:translateX(0)}
+        .gloss-backdrop{position:fixed;inset:0;z-index:240;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .25s}
+        .gloss-backdrop.open{opacity:1;pointer-events:auto}
+        .gloss-sidebar .gs-head{padding:16px 20px;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+        .gloss-sidebar .gs-search{margin:12px 16px;position:relative;flex-shrink:0}
+        .gloss-sidebar .gs-search input{width:100%;background:#141414;border:1px solid #1A1A1A;border-radius:10px;padding:10px 14px 10px 36px;color:#fff;font-size:13px;outline:none;transition:border-color .2s}
+        .gloss-sidebar .gs-search input:focus{border-color:rgba(205,255,0,.4)}
+        .gloss-sidebar .gs-search input::placeholder{color:#555}
+        .gloss-sidebar .gs-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#555}
+        .gloss-sidebar .gs-list{flex:1;overflow-y:auto;padding:8px 16px 20px}
+        .gloss-sidebar .gs-list::-webkit-scrollbar{width:5px}.gloss-sidebar .gs-list::-webkit-scrollbar-track{background:transparent}.gloss-sidebar .gs-list::-webkit-scrollbar-thumb{background:#2A2A2A;border-radius:3px}
+        .gloss-sidebar .gs-entry{background:#0F0F0F;border:1px solid #1A1A1A;border-radius:12px;padding:14px 16px;margin-bottom:10px;transition:border-color .2s}
+        .gloss-sidebar .gs-entry:hover{border-color:#2A2A2A}
+        .gloss-sidebar .gs-entry .ge-term{font-size:13px;font-weight:700;color:#CDFF00;margin-bottom:2px}
+        .gloss-sidebar .gs-entry .ge-full{font-size:11px;color:#888;margin-bottom:6px}
+        .gloss-sidebar .gs-entry .ge-def{font-size:12px;color:#C0C0C0;line-height:1.55;margin-bottom:6px}
+        .gloss-sidebar .gs-entry .ge-ex{font-size:11px;color:#777;background:#141414;border-radius:8px;padding:8px 10px;margin-bottom:4px;line-height:1.5}
+        .gloss-sidebar .gs-entry .ge-bm{font-size:11px;color:#CDFF00;font-weight:500}
+        .gloss-sidebar .gs-empty{text-align:center;color:#555;font-size:13px;padding:32px 0}
+        /* Assumptions panel ("What I know so far") */
+        .assume-bar{max-width:48rem;margin:0 auto;padding:0 1rem}
+        .assume-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;padding:8px 14px;background:#0A0A0A;border:1px solid #1A1A1A;border-radius:10px;cursor:pointer;transition:all .2s ease;user-select:none}
+        .assume-toggle:hover{border-color:rgba(205,255,0,.25);background:#0F0F0F}
+        .assume-toggle .at-left{display:flex;align-items:center;gap:8px;font-size:12px;color:#A0A0A0;font-weight:500}
+        .assume-toggle .at-left svg{color:#CDFF00}
+        .assume-toggle .at-count{background:rgba(205,255,0,.12);color:#CDFF00;font-size:10px;font-weight:700;padding:1px 7px;border-radius:6px}
+        .assume-toggle .at-chev{transition:transform .25s ease;color:#555}
+        .assume-toggle.open .at-chev{transform:rotate(180deg)}
+        .assume-body{max-height:0;overflow:hidden;transition:max-height .3s ease,opacity .2s ease;opacity:0}
+        .assume-body.open{opacity:1}
+        .assume-body .ab-inner{padding:8px 0 4px}
+        .assume-body .ab-item{display:flex;align-items:flex-start;gap:8px;padding:5px 14px;font-size:12px;color:#C0C0C0;line-height:1.5}
+        .assume-body .ab-item .ab-dot{width:5px;height:5px;border-radius:50%;background:#CDFF00;margin-top:6px;flex-shrink:0}
+        .assume-body .ab-empty{padding:10px 14px;font-size:12px;color:#555;font-style:italic}
+        /* Confirmation overlay */
+        .confirm-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .3s ease}
+        .confirm-overlay.open{opacity:1;pointer-events:auto}
+        .confirm-panel{background:#0A0A0A;border:1px solid #1A1A1A;border-radius:20px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;position:relative;transform:translateY(20px) scale(.97);transition:transform .3s cubic-bezier(.16,1,.3,1);box-shadow:0 32px 80px rgba(0,0,0,.6)}
+        .confirm-overlay.open .confirm-panel{transform:translateY(0) scale(1)}
+        .confirm-panel::-webkit-scrollbar{width:5px}.confirm-panel::-webkit-scrollbar-track{background:transparent}.confirm-panel::-webkit-scrollbar-thumb{background:#2A2A2A;border-radius:3px}
+        .confirm-row{background:#0F0F0F;border:1px solid #1A1A1A;border-radius:12px;padding:14px 16px;transition:border-color .2s}
+        .confirm-row:hover{border-color:#2A2A2A}
+        .confirm-row.needs-exact{border-color:rgba(250,204,21,.3);background:rgba(250,204,21,.03)}
+        .confirm-row .cr-label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#888;font-weight:600;margin-bottom:6px}
+        .confirm-row .cr-input{width:100%;background:transparent;border:none;color:#fff;font-size:14px;font-weight:500;outline:none;padding:0}
+        .confirm-row .cr-input::placeholder{color:#444}
+        .confirm-row .cr-input:focus{color:#CDFF00}
+        .confirm-row .cr-hint{font-size:11px;color:#facc15;margin-top:6px;display:flex;align-items:center;gap:6px;line-height:1.35}
     </style>
     <script src="auth-check.js"></script>
 </head>
@@ -87,22 +153,22 @@
                 </div>
                 <form id="form" onsubmit="init(event)" class="space-y-4">
                     <div>
-                        <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Company Website <span class="text-red-400">*</span></label>
-                        <input type="url" id="f-web" required placeholder="https://yourcompany.com" class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none placeholder:text-gray-600 transition-colors">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Business Description <span class="text-p-lime text-[10px] ml-1">IMPORTANT</span></label>
-                        <textarea id="f-desc" rows="2" placeholder="What you sell, who you sell to, how you make money..." class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none placeholder:text-gray-600 resize-none transition-colors"></textarea>
-                    </div>
-                    <div>
                         <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Company Stage <span class="text-red-400">*</span></label>
-                        <select id="f-stage" required class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none transition-colors appearance-none cursor-pointer" style='background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 fill=%27%23888%27 viewBox=%270 0 16 16%27%3E%3Cpath d=%27M8 11L3 6h10z%27/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center'>
+                        <select id="f-stage" required onchange="updateWebsiteField()" class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none transition-colors appearance-none cursor-pointer" style='background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 fill=%27%23888%27 viewBox=%270 0 16 16%27%3E%3Cpath d=%27M8 11L3 6h10z%27/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center'>
                             <option value="" disabled selected class="text-gray-600">Select your stage</option>
                             <option value="pre_seed">Pre-Seed / Idea</option>
                             <option value="seed">Seed / Startup</option>
                             <option value="early_scale">Early Scale</option>
                             <option value="expansion">Expansion / Enterprise</option>
                         </select>
+                    </div>
+                    <div id="web-field">
+                        <label id="web-label" class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Company Website <span id="web-req" class="text-red-400">*</span></label>
+                        <input type="url" id="f-web" required placeholder="https://yourcompany.com" class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none placeholder:text-gray-600 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Business Description <span class="text-p-lime text-[10px] ml-1">IMPORTANT</span></label>
+                        <textarea id="f-desc" rows="2" placeholder="What you sell, who you sell to, how you make money..." class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none placeholder:text-gray-600 resize-none transition-colors"></textarea>
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Your LinkedIn Profile <span class="text-p-grey text-[10px]">OPTIONAL</span></label>
@@ -200,6 +266,10 @@
         </div>
         <div class="flex items-center gap-3">
             <span id="tn" class="text-[10px] font-mono text-p-grey"></span>
+            <button onclick="toggleGlossarySidebar()" class="instr-btn" title="Glossary">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><text x="5" y="17" font-size="14" font-weight="700" fill="currentColor" stroke="none">?</text></svg>
+                <span class="hidden sm:inline">Glossary</span>
+            </button>
             <button onclick="toggleInstructions()" class="instr-btn" title="How to use">
                 <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 16v.01M12 12a2 2 0 10-2-2"/></svg>
                 <span class="hidden sm:inline">Guide</span>
@@ -208,6 +278,66 @@
         </div>
     </header>
     <div class="w-full h-[2px] bg-p-panel"><div id="bar" class="h-full bg-gradient-to-r from-p-lime to-p-lime2 transition-all duration-700" style="width:0%"></div></div>
+    <div id="depth-nudge" class="depth-nudge depth-discovery"></div>
+
+    <!-- ═══════════════════ PRE-REPORT CONFIRMATION ═══════════════════ -->
+    <div id="confirmOverlay" class="confirm-overlay" onclick="if(event.target===this)closeConfirmation()">
+        <div class="confirm-panel">
+            <div class="sticky top-0 bg-[#0A0A0A] z-10 flex items-center justify-between px-6 pt-5 pb-3 border-b border-p-bdr">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 bg-p-lime/10 border border-p-lime/30 rounded-xl flex items-center justify-center text-p-lime shrink-0">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <span class="font-semibold text-sm">Confirm Your Data Before Report</span>
+                </div>
+                <button onclick="closeConfirmation()" class="text-p-grey hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-3">
+                <p class="text-sm text-p-grey">Review and correct these key data points. Specific values improve benchmark accuracy.</p>
+                <div id="confirmFields" class="space-y-3"></div>
+            </div>
+            <div class="sticky bottom-0 bg-[#0A0A0A] border-t border-p-bdr px-6 py-4 flex gap-3">
+                <button onclick="closeConfirmation()" class="flex-1 px-4 py-3 text-sm text-p-grey border border-p-bdr rounded-xl hover:bg-white/5 transition">Cancel</button>
+                <button onclick="confirmAndGenerate()" class="flex-1 px-4 py-3 text-sm font-bold bg-p-lime text-black rounded-xl hover:bg-p-lime2 transition shadow-[0_0_20px_rgba(205,255,0,.12)]">Generate Report</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════ GLOSSARY SIDEBAR ═══════════════════ -->
+    <div id="glossBackdrop" class="gloss-backdrop" onclick="toggleGlossarySidebar()"></div>
+    <div id="glossSidebar" class="gloss-sidebar">
+        <div class="gs-head">
+            <div class="flex items-center gap-2">
+                <span class="text-p-lime font-bold text-sm">?</span>
+                <span class="font-semibold text-sm">Glossary</span>
+            </div>
+            <button onclick="toggleGlossarySidebar()" class="text-p-grey hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="gs-search">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
+            <input id="glossSearch" type="text" placeholder="Search terms..." oninput="filterGlossary(this.value)">
+        </div>
+        <div id="glossList" class="gs-list"></div>
+    </div>
+
+    <!-- ═══════════════════ ASSUMPTIONS PANEL ═══════════════════ -->
+    <div id="assumeBar" class="assume-bar" style="display:none">
+        <div id="assumeToggle" class="assume-toggle">
+            <div class="at-left">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"/></svg>
+                <span>What I know so far</span>
+                <span id="assumeCount" class="at-count">0</span>
+            </div>
+            <svg class="at-chev" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+        </div>
+        <div id="assumeBody" class="assume-body">
+            <div id="assumeList" class="ab-inner"></div>
+        </div>
+    </div>
 
     <!-- ═══════════════════ CHAT ═══════════════════ -->
     <main id="chat" class="flex-1 overflow-y-auto scr scroll-smooth">
@@ -247,6 +377,239 @@
     const RAPI = "/api/report";
 
     // ═══════════════════════════════════════════════════════════════
+    // GLOSSARY
+    // ═══════════════════════════════════════════════════════════════
+    const GLOSSARY = {
+      'CAC': {
+        full: 'Customer Acquisition Cost',
+        definition: 'Total sales & marketing spend divided by new customers acquired in the same period.',
+        example: 'If you spent €10,000 on marketing and acquired 20 customers → CAC = €500',
+        benchmark: 'Seed stage median: €800–1,200 for B2B SaaS'
+      },
+      'LTV': {
+        full: 'Lifetime Value',
+        definition: 'The total net revenue a single customer generates over their entire relationship with your company.',
+        example: '€100/mo ARPU × 24 months avg lifespan = €2,400 LTV',
+        benchmark: 'Healthy LTV:CAC ratio is ≥ 3:1'
+      },
+      'MRR': {
+        full: 'Monthly Recurring Revenue',
+        definition: 'Predictable revenue earned every month from active subscriptions, excluding one-time fees.',
+        example: '200 customers × €50/mo plan = €10,000 MRR',
+        benchmark: 'Seed median: €10–50K; Series A median: €80–200K'
+      },
+      'ARR': {
+        full: 'Annual Recurring Revenue',
+        definition: 'MRR × 12. The annualised value of recurring subscription revenue.',
+        example: '€25K MRR → €300K ARR',
+        benchmark: 'Series A typical threshold: €1–2M ARR'
+      },
+      'NRR': {
+        full: 'Net Revenue Retention',
+        definition: 'Percentage of recurring revenue retained from existing customers after churn, contraction, and expansion over 12 months.',
+        example: 'Start with €100K cohort → after 12 months they pay €110K → NRR = 110%',
+        benchmark: 'Best-in-class SaaS: >120%; good: >100%; concerning: <90%'
+      },
+      'Churn': {
+        full: 'Churn Rate',
+        definition: 'Percentage of customers (logo churn) or revenue (revenue churn) lost in a given period.',
+        example: '5 churned out of 100 customers this month → 5% monthly logo churn',
+        benchmark: 'Seed median: 3–5%/mo; Scale-up target: <2%/mo'
+      },
+      'ICP': {
+        full: 'Ideal Customer Profile',
+        definition: 'A detailed description of the company or buyer persona most likely to buy, succeed with, and stay on your product.',
+        example: 'B2B SaaS, 50-200 employees, Series A funded, Head of Demand Gen as buyer'
+      },
+      'GTM': {
+        full: 'Go-To-Market',
+        definition: 'The strategy and execution plan for bringing a product to market — covering positioning, channels, pricing, and sales motion.',
+        example: 'PLG + content-led inbound for SMB; outbound SDR team for mid-market'
+      },
+      'ABM': {
+        full: 'Account-Based Marketing',
+        definition: 'A focused growth strategy where marketing and sales collaborate on personalised campaigns targeting specific high-value accounts.',
+        example: 'Create custom content for 50 target enterprise accounts and run LinkedIn ads only to their employees'
+      },
+      'PLG': {
+        full: 'Product-Led Growth',
+        definition: 'A growth model where the product itself drives acquisition, activation, and expansion — users try before they buy.',
+        example: 'Free tier → usage-based upgrade prompts → self-serve checkout (e.g. Slack, Notion)'
+      },
+      'RevOps': {
+        full: 'Revenue Operations',
+        definition: 'A function that aligns marketing, sales, and customer success operations under one umbrella to drive efficient, predictable revenue growth.',
+        example: 'One team owns CRM data, pipeline reporting, lead routing, and forecasting across all revenue teams'
+      },
+      'ARPU': {
+        full: 'Average Revenue Per User',
+        definition: 'Total revenue divided by the number of active customers or users in a period.',
+        example: '€50K MRR ÷ 500 customers = €100 ARPU',
+        benchmark: 'Varies widely by segment; enterprise ARPU 10-50× SMB'
+      },
+      'ACV': {
+        full: 'Annual Contract Value',
+        definition: 'The annualised revenue value of a single customer contract, normalising multi-year deals to a per-year figure.',
+        example: 'A 3-year deal worth €90K → ACV = €30K',
+        benchmark: 'SMB: <€10K; Mid-market: €10–50K; Enterprise: >€50K'
+      },
+      'MEDDPICC': {
+        full: 'Metrics, Economic Buyer, Decision Criteria, Decision Process, Paper Process, Implications, Champion, Competition',
+        definition: 'An enterprise sales qualification framework that maps the buying process to increase win rates on complex deals.'
+      },
+      'T2D3': {
+        full: 'Triple Triple Double Double Double',
+        definition: 'A benchmark SaaS growth trajectory: triple ARR two years in a row, then double it three years in a row to reach ~€100M ARR.',
+        example: '€1M → €3M → €9M → €18M → €36M → €72M over 5 years'
+      }
+    };
+
+    // Build sorted keys for sidebar rendering
+    const GLOSSARY_KEYS = Object.keys(GLOSSARY).sort();
+    // Regex to match glossary terms in rendered HTML (word-boundary, longest first)
+    const _glossTermsSorted = Object.keys(GLOSSARY).sort((a, b) => b.length - a.length);
+    const _glossRe = new RegExp('\\b(' + _glossTermsSorted.map(t => t.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')).join('|') + ')\\b', 'g');
+
+    /** Wrap glossary terms found in an HTML string (avoids replacing inside tags/attributes) */
+    function highlightGlossaryTerms(html) {
+      // Split on HTML tags to only process text nodes
+      const parts = html.split(/(<[^>]+>)/);
+      for (let i = 0; i < parts.length; i++) {
+        // Skip tag parts
+        if (parts[i].startsWith('<')) continue;
+        // Replace glossary terms in text part
+        parts[i] = parts[i].replace(_glossRe, (match) => {
+          const key = Object.keys(GLOSSARY).find(k => k.toUpperCase() === match.toUpperCase()) || match;
+          return '<span class="glossary-term" data-term="' + key + '">' + match + '</span>';
+        });
+      }
+      return parts.join('');
+    }
+
+    // ── Tooltip ──
+    let _activeTip = null;
+    function showGlossaryTip(term, anchorEl) {
+      hideGlossaryTip();
+      const entry = GLOSSARY[term];
+      if (!entry) return;
+      const tip = document.createElement('div');
+      tip.className = 'gloss-tip';
+      tip.innerHTML =
+        '<button class="gt-close" onclick="hideGlossaryTip()">&times;</button>' +
+        '<div class="gt-abbr">' + term + '</div>' +
+        (entry.full ? '<div class="gt-full">' + entry.full + '</div>' : '') +
+        '<div class="gt-def">' + entry.definition + '</div>' +
+        (entry.example ? '<div class="gt-ex">💡 ' + entry.example + '</div>' : '') +
+        (entry.benchmark ? '<div class="gt-bm">📊 ' + entry.benchmark + '</div>' : '');
+      document.body.appendChild(tip);
+      // Position near the anchor
+      const rect = anchorEl.getBoundingClientRect();
+      const tipW = Math.min(340, window.innerWidth - 24);
+      let left = rect.left + rect.width / 2 - tipW / 2;
+      if (left < 8) left = 8;
+      if (left + tipW > window.innerWidth - 8) left = window.innerWidth - tipW - 8;
+      let top = rect.bottom + 8;
+      // If it would overflow bottom, show above
+      if (top + 200 > window.innerHeight) top = rect.top - 8 - 200;
+      if (top < 8) top = 8;
+      tip.style.left = left + 'px';
+      tip.style.top = top + 'px';
+      tip.style.width = tipW + 'px';
+      requestAnimationFrame(() => tip.classList.add('show'));
+      _activeTip = tip;
+    }
+    function hideGlossaryTip() {
+      if (_activeTip) { _activeTip.remove(); _activeTip = null; }
+    }
+    // Global click delegation for glossary terms
+    document.addEventListener('click', (e) => {
+      const term = e.target.closest('.glossary-term');
+      if (term) {
+        e.preventDefault();
+        showGlossaryTip(term.dataset.term, term);
+        return;
+      }
+      // Click outside tooltip => close
+      if (_activeTip && !_activeTip.contains(e.target)) hideGlossaryTip();
+    });
+    // Hover support for desktop
+    document.addEventListener('mouseover', (e) => {
+      const term = e.target.closest('.glossary-term');
+      if (term && !_activeTip) showGlossaryTip(term.dataset.term, term);
+    });
+
+    // ── Glossary sidebar ──
+    function toggleGlossarySidebar() {
+      $('glossSidebar').classList.toggle('open');
+      $('glossBackdrop').classList.toggle('open');
+      if ($('glossSidebar').classList.contains('open')) renderGlossaryList();
+    }
+    function renderGlossaryList(filter) {
+      const list = $('glossList');
+      const q = (filter || '').toLowerCase().trim();
+      const keys = q
+        ? GLOSSARY_KEYS.filter(k => k.toLowerCase().includes(q) || (GLOSSARY[k].full || '').toLowerCase().includes(q) || GLOSSARY[k].definition.toLowerCase().includes(q))
+        : GLOSSARY_KEYS;
+      if (keys.length === 0) {
+        list.innerHTML = '<div class="gs-empty">No matching terms</div>';
+        return;
+      }
+      list.innerHTML = keys.map(k => {
+        const e = GLOSSARY[k];
+        return '<div class="gs-entry">' +
+          '<div class="ge-term">' + k + '</div>' +
+          (e.full ? '<div class="ge-full">' + e.full + '</div>' : '') +
+          '<div class="ge-def">' + e.definition + '</div>' +
+          (e.example ? '<div class="ge-ex">💡 ' + e.example + '</div>' : '') +
+          (e.benchmark ? '<div class="ge-bm">📊 ' + e.benchmark + '</div>' : '') +
+          '</div>';
+      }).join('');
+    }
+    function filterGlossary(q) { renderGlossaryList(q); }
+    // ESC closes sidebar
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && $('glossSidebar').classList.contains('open')) toggleGlossarySidebar();
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // ASSUMPTIONS PANEL — "What I know so far"
+    // ═══════════════════════════════════════════════════════════════
+    function updateAssumptionsPanel(assumptions) {
+      const bar = $('assumeBar');
+      const list = $('assumeList');
+      const count = $('assumeCount');
+      if (!assumptions || assumptions.length === 0) {
+        bar.style.display = 'none';
+        return;
+      }
+      bar.style.display = 'block';
+      count.textContent = assumptions.length;
+      list.innerHTML = assumptions.map(a =>
+        '<div class="ab-item"><div class="ab-dot"></div><span>' + a.replace(/</g, '&lt;') + '</span></div>'
+      ).join('');
+      // Update max-height if already open
+      const body = $('assumeBody');
+      if (body.classList.contains('open')) {
+        body.style.maxHeight = body.scrollHeight + 'px';
+      }
+    }
+    // Toggle handler
+    $('assumeToggle').addEventListener('click', () => {
+      const toggle = $('assumeToggle');
+      const body = $('assumeBody');
+      const isOpen = body.classList.contains('open');
+      if (isOpen) {
+        body.style.maxHeight = '0px';
+        body.classList.remove('open');
+        toggle.classList.remove('open');
+      } else {
+        body.classList.add('open');
+        toggle.classList.add('open');
+        body.style.maxHeight = body.scrollHeight + 'px';
+      }
+    });
+
+    // ═══════════════════════════════════════════════════════════════
     // STATE
     // ═══════════════════════════════════════════════════════════════
     let H = [];           // Conversation history for API
@@ -258,6 +621,8 @@
     let attachedFiles = []; // Files to be sent with next message
     let stateStack = [];      // Stack for go-back functionality
     let currentDisplay = null; // Current displayed response data
+    let answerCache = {};     // stepId → { key, label, ts } for selected options
+    let answerHistory = [];   // Ordered list of cached answers for audit trail
 
     // ═══════════════════════════════════════════════════════════════
     // DOM HELPERS
@@ -309,12 +674,14 @@
         } catch {
             html = text;
         }
+        // Highlight glossary terms in the rendered HTML
+        const glossHtml = highlightGlossaryTerms(html);
         d.innerHTML = `
             <div class="w-8 h-8 rounded-xl bg-p-panel border border-p-bdr flex items-center justify-center shrink-0">
                 <span class="text-p-lime font-mono text-[10px] font-bold">RA</span>
             </div>
             <div class="flex-1 max-w-[85%]">
-                <div class="prose bg-p-card border border-p-bdr p-4 rounded-2xl rounded-tl-md">${html}</div>
+                <div class="prose bg-p-card border border-p-bdr p-4 rounded-2xl rounded-tl-md">${glossHtml}</div>
             </div>`;
         msgs.appendChild(d);
         scroll();
@@ -352,7 +719,7 @@
     // ═══════════════════════════════════════════════════════════════
     // PHASE TRACKER
     // ═══════════════════════════════════════════════════════════════
-    function updPhase(phase, conf) {
+    function updPhase(phase, conf, depthPct) {
         $('ph').classList.remove('hidden');
         const map = {
             welcome: 0, company: 1, gtm: 2, sales: 3,
@@ -372,10 +739,29 @@
             l.classList.add(i < idx ? 'on' : i === idx ? 'now' : 'off');
         }
 
-        const pct = conf?.total || Math.round((idx / 5) * 100);
+        // Use diagnostic depth score (weighted) instead of simple question count
+        const pct = typeof depthPct === 'number' ? depthPct : (conf?.total || Math.round((idx / 5) * 100));
         $('bar').style.width = pct + '%';
         $('conf').textContent = pct + '%';
         $('tn').textContent = 'T' + (S?.turnCount || 0);
+
+        // Depth-based nudge / badge UI
+        const nudgeEl = $('depth-nudge');
+        if (nudgeEl) {
+            if (pct >= 100) {
+                nudgeEl.className = 'depth-nudge depth-premium';
+                nudgeEl.innerHTML = '⭐ Full diagnostic complete — maximum benchmark accuracy';
+            } else if (pct >= 80) {
+                nudgeEl.className = 'depth-nudge depth-ready';
+                nudgeEl.innerHTML = '✅ Diagnostic complete enough for a strong report. Continue for deeper insights, or generate now.';
+            } else if (pct >= 60) {
+                nudgeEl.className = 'depth-nudge depth-almost';
+                nudgeEl.innerHTML = '📊 Almost ready for your report — a few more details will improve accuracy.';
+            } else {
+                nudgeEl.className = 'depth-nudge depth-discovery';
+                nudgeEl.innerHTML = '';
+            }
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -406,10 +792,24 @@
 
         // Restore display
         currentDisplay = prev.display;
-        updPhase(prev.display.current_phase, prev.display.confidence_state);
+        updPhase(prev.display.current_phase, prev.display.confidence_state, prev.display.diagnostic_depth);
         showOpts(prev.display.options, prev.display.allowText);
         $('st').textContent = 'READY';
         scroll();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ANSWER SELECTION CACHE
+    // ═══════════════════════════════════════════════════════════════
+    function cacheAnswer(stepId, key, label) {
+        answerCache[stepId] = { key, label, ts: Date.now() };
+        answerHistory.push({ stepId, key, label, ts: Date.now() });
+        // Auto-cleanup: keep only last 50 history entries
+        if (answerHistory.length > 50) answerHistory = answerHistory.slice(-50);
+    }
+
+    function getCachedAnswer(stepId) {
+        return answerCache[stepId] || null;
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -418,6 +818,9 @@
     function showOpts(list, allowText) {
         opts.innerHTML = '';
         inp.classList.add('hidden', 'opacity-0');
+
+        // Check for previously cached answer at this step
+        const cached = getCachedAnswer(H.length);
 
         // Render go-back button if history exists
         if (stateStack.length > 0) {
@@ -487,9 +890,11 @@
                 const b = document.createElement('button');
                 b.style.animationDelay = `${i * 0.06}s`;
                 b.onclick = () => pick(o.key, o.label);
-                b.className = 'mi w-full text-left bg-p-card border border-p-bdr hover:border-p-lime/50 p-3.5 rounded-xl transition-all group flex items-center justify-between';
+                const isSelected = cached && cached.key === o.key;
+                b.className = 'mi w-full text-left bg-p-card border border-p-bdr hover:border-p-lime/50 p-3.5 rounded-xl transition-all group flex items-center justify-between' + (isSelected ? ' opt-selected' : '');
                 b.innerHTML = `
-                    <span class="text-sm font-medium">${o.label}</span>
+                    ${isSelected ? '<svg width="16" height="16" fill="none" stroke="#CDFF00" stroke-width="2" viewBox="0 0 24 24" class="shrink-0 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' : ''}
+                    <span class="text-sm font-medium flex-1">${o.label}</span>
                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" class="text-p-grey group-hover:text-p-lime group-hover:translate-x-1 transition-all shrink-0 ml-2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
                     </svg>`;
@@ -517,6 +922,15 @@
                     scroll();
                 }
             });
+
+            // Auto-open accordion if a cached answer exists in regular options
+            if (cached && regular.some(o => o.key === cached.key)) {
+                requestAnimationFrame(() => {
+                    body.classList.add('open');
+                    toggle.classList.add('open');
+                    body.style.maxHeight = body.scrollHeight + 'px';
+                });
+            }
         }
 
         // Show text input if allowed
@@ -562,10 +976,13 @@
         if (busy) return;
 
         // Handle special actions
-        if (key === 'generate_report' || key === 'update_and_generate') { genPDF(); return; }
+        if (key === 'generate_report' || key === 'update_and_generate') { showConfirmation(); return; }
         if (key === 'restart') { location.reload(); return; }
         if (key === 'download_again') { genPDF(); return; }
         if (key === 'open_dashboard') { openDashboard(); return; }
+
+        // Cache the selected answer for this conversation step
+        cacheAnswer(H.length, key, label);
 
         const stackLenBefore = stateStack.length;
         saveStateBeforePick();
@@ -590,16 +1007,18 @@
             );
 
             typing(false);
-            updPhase(data.current_phase, data.confidence_state);
+            updPhase(data.current_phase, data.confidence_state, data.diagnostic_depth);
             addA(data.message);
             currentDisplay = {
                 message: data.message,
                 options: data.options,
                 allowText: data.allow_text !== false && data.mode !== 'buttons',
                 current_phase: data.current_phase,
-                confidence_state: data.confidence_state
+                confidence_state: data.confidence_state,
+                diagnostic_depth: data.diagnostic_depth
             };
             showOpts(data.options, data.allow_text !== false && data.mode !== 'buttons');
+            updateAssumptionsPanel(data.assumptions);
             $('st').textContent = 'READY';
 
         } catch (e) {
@@ -746,16 +1165,18 @@
             );
 
             typing(false);
-            updPhase(data.current_phase, data.confidence_state);
+            updPhase(data.current_phase, data.confidence_state, data.diagnostic_depth);
             addA(data.message);
             currentDisplay = {
                 message: data.message,
                 options: data.options,
                 allowText: data.allow_text !== false && data.mode !== 'buttons',
                 current_phase: data.current_phase,
-                confidence_state: data.confidence_state
+                confidence_state: data.confidence_state,
+                diagnostic_depth: data.diagnostic_depth
             };
             showOpts(data.options, data.allow_text !== false && data.mode !== 'buttons');
+            updateAssumptionsPanel(data.assumptions);
             $('st').textContent = 'READY';
 
         } catch (e) {
@@ -783,29 +1204,64 @@
     // ═══════════════════════════════════════════════════════════════
     // INITIALIZATION
     // ═══════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
+    // STAGE-CONDITIONAL WEBSITE FIELD
+    // ═══════════════════════════════════════════════════════════════
+    const websiteConfig = {
+        'pre_seed':    { required: false, label: 'Website or landing page (optional)', placeholder: 'Skip if you don\'t have one yet' },
+        'seed':        { required: false, label: 'Company website (if available)', placeholder: 'https://... or skip' },
+        'early_scale': { required: true,  label: 'Company website', placeholder: 'https://yourcompany.com' },
+        'expansion':   { required: true,  label: 'Company website', placeholder: 'https://yourcompany.com' },
+    };
+
+    function updateWebsiteField() {
+        const stage = $('f-stage').value;
+        const cfg = websiteConfig[stage];
+        if (!cfg) return;
+        const inp = $('f-web');
+        const lbl = $('web-label');
+        const req = $('web-req');
+        inp.required = cfg.required;
+        inp.placeholder = cfg.placeholder;
+        lbl.innerHTML = cfg.label + (cfg.required
+            ? ' <span id="web-req" class="text-red-400">*</span>'
+            : ' <span id="web-req" class="text-p-grey text-[10px]">OPTIONAL</span>');
+    }
+
     async function init(e) {
         e.preventDefault();
+
+        const s = $('f-stage').value;
+        if (!s) { alert('Please select your company stage'); return; }
 
         const w = $('f-web').value.trim();
         const d = $('f-desc').value.trim();
         const l = $('f-li').value.trim();
-        const s = $('f-stage').value;
+        const cfg = websiteConfig[s];
 
-        // Validate URL
-        try { new URL(w); } catch { alert('Please enter a valid URL'); return; }
-        if (!s) { alert('Please select your company stage'); return; }
+        // Validate URL only if required or provided
+        if (w) {
+            try { new URL(w); } catch { alert('Please enter a valid URL'); return; }
+        } else if (cfg?.required) {
+            alert('Please enter your company website'); return;
+        }
 
         // Disable button
         $('f-btn').disabled = true;
-        $('f-btn').innerHTML = '<div class="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div> <span>Scanning website...</span>';
+        const hasWebsite = !!w;
+        $('f-btn').innerHTML = hasWebsite
+            ? '<div class="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div> <span>Scanning website...</span>'
+            : '<div class="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div> <span>Preparing diagnostic...</span>';
 
         // Hide modal
         $('modal').style.opacity = '0';
         setTimeout(() => $('modal').classList.add('hidden'), 400);
 
         // Show initial state
-        addA("**Initializing Revenue Architect** — Scanning your website and preparing the diagnostic...");
-        loading('SCANNING WEBSITE...');
+        addA(hasWebsite
+            ? "**Initializing Revenue Architect** — Scanning your website and preparing the diagnostic..."
+            : "**Initializing Revenue Architect** — Preparing your diagnostic...");
+        loading(hasWebsite ? 'SCANNING WEBSITE...' : 'PREPARING...');
         $('st').textContent = 'SCANNING';
 
         diag = { website: w, description: d, linkedin: l, stage: s };
@@ -821,16 +1277,18 @@
             S = data.session_data;
             H.push({ role: 'assistant', content: JSON.stringify(data) });
 
-            updPhase(data.current_phase, data.confidence_state);
+            updPhase(data.current_phase, data.confidence_state, data.diagnostic_depth);
             addA(data.message);
             currentDisplay = {
                 message: data.message,
                 options: data.options,
                 allowText: data.allow_text !== false && data.mode !== 'buttons',
                 current_phase: data.current_phase,
-                confidence_state: data.confidence_state
+                confidence_state: data.confidence_state,
+                diagnostic_depth: data.diagnostic_depth
             };
             showOpts(data.options, data.allow_text !== false && data.mode !== 'buttons');
+            updateAssumptionsPanel(data.assumptions);
             $('st').textContent = 'READY';
 
         } catch (err) {
@@ -841,6 +1299,62 @@
                     Failed to connect — click to retry
                 </button>`;
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PRE-REPORT CONFIRMATION SCREEN
+    // ═══════════════════════════════════════════════════════════════
+    function buildConfirmationScreen(profile) {
+        const criticalParams = [
+            { label: 'Company', value: profile.companyName, field: 'companyName', editable: true },
+            { label: 'Industry', value: profile.industry, field: 'industry', editable: true },
+            { label: 'Stage', value: profile.companyStage || profile.stage, field: 'stage', editable: true },
+            { label: 'Team Size', value: profile.teamSize, field: 'teamSize', editable: true,
+              requiresExact: /\d+[-\u2013]\d+/.test(profile.teamSize || '') },
+            { label: 'Monthly Revenue', value: profile.revenue, field: 'revenue', editable: true,
+              requiresExact: /range|approx|about|~/i.test((profile.revenue || '')) },
+            { label: 'Main Bottleneck', value: profile.mainBottleneck, field: 'mainBottleneck', editable: true },
+            { label: 'Primary Goal', value: profile.userPriority, field: 'userPriority', editable: true },
+        ];
+        const needsClarification = criticalParams.filter(p => p.requiresExact);
+        return { params: criticalParams, needsClarification };
+    }
+
+    function showConfirmation() {
+        if (!S?.profile) { genPDF(); return; }
+        const { params } = buildConfirmationScreen(S.profile);
+        const container = $('confirmFields');
+        container.innerHTML = '';
+        for (const p of params) {
+            const needsExact = p.requiresExact;
+            const row = document.createElement('div');
+            row.className = 'confirm-row' + (needsExact ? ' needs-exact' : '');
+            const escapedVal = (p.value || '').replace(/"/g, '&quot;');
+            let hint = '';
+            if (needsExact) {
+                hint = `<div class="cr-hint"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg> You mentioned \u201C${p.value || ''}\u201D. What\u2019s the specific number? (improves benchmark accuracy)</div>`;
+            }
+            row.innerHTML = `<div class="cr-label">${p.label}</div><input class="cr-input" data-field="${p.field}" value="${escapedVal}" placeholder="Not provided \u2014 add value...">${hint}`;
+            container.appendChild(row);
+        }
+        $('confirmOverlay').classList.add('open');
+    }
+
+    function closeConfirmation() {
+        $('confirmOverlay').classList.remove('open');
+    }
+
+    function confirmAndGenerate() {
+        const inputs = $('confirmFields').querySelectorAll('.cr-input');
+        inputs.forEach(inp => {
+            const field = inp.dataset.field;
+            const val = inp.value.trim();
+            if (field && val && S?.profile) {
+                S.profile[field] = val;
+            }
+        });
+        closeConfirmation();
+        genPDF();
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -1161,7 +1675,7 @@ ${chartData ? `<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/cha
             ];
             if (lastDashboardData) postOpts.splice(1, 0, { key: 'open_dashboard', label: '📊 Open 90-Day Dashboard' });
             showOpts(postOpts, false);
-            updPhase('finish', { total: 100 });
+            updPhase('finish', { total: 100 }, 100);
             $('st').textContent = 'COMPLETE';
 
         } catch (e) {
@@ -1248,6 +1762,14 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:#e5e
 /* Progress bar */
 .mc-progress{margin-bottom:10px}
 .mc-progress .mp-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--grey);margin-bottom:4px}
+
+/* Depth nudge badges */
+.depth-nudge{font-size:11px;text-align:center;padding:0;max-height:0;overflow:hidden;transition:all .4s ease;line-height:1.4;font-family:var(--mono,monospace);opacity:0}
+.depth-nudge:not(:empty){padding:6px 12px;max-height:48px;opacity:1}
+.depth-discovery{}
+.depth-almost{color:#facc15;background:rgba(250,204,21,.08);border-bottom:1px solid rgba(250,204,21,.15)}
+.depth-ready{color:#CDFF00;background:rgba(205,255,0,.08);border-bottom:1px solid rgba(205,255,0,.15)}
+.depth-premium{color:#a78bfa;background:rgba(167,139,250,.08);border-bottom:1px solid rgba(167,139,250,.15)}
 .mp-track{height:6px;background:#1a1a1a;border-radius:3px;position:relative;overflow:visible}
 .mp-fill{height:100%;border-radius:3px;transition:width .5s ease;position:relative}
 .mp-median{position:absolute;top:-3px;width:2px;height:12px;background:var(--grey);border-radius:1px;z-index:2}

@@ -540,6 +540,28 @@ async function liveAudit(companyName, industry, stage, tavilyKey) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// PRE-REPORT CONFIRMATION SCREEN — validates data accuracy before generation
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function buildConfirmationScreen(profile) {
+  const criticalParams = [
+    { label: 'Company', value: profile.companyName, field: 'companyName', editable: true },
+    { label: 'Industry', value: profile.industry, field: 'industry', editable: true },
+    { label: 'Stage', value: profile.companyStage || profile.stage, field: 'stage', editable: true },
+    { label: 'Team Size', value: profile.teamSize, field: 'teamSize', editable: true,
+      requiresExact: /\d+[-–]\d+/.test(profile.teamSize || '') },
+    { label: 'Monthly Revenue', value: profile.revenue, field: 'revenue', editable: true,
+      requiresExact: /range|approx|about|~/i.test((profile.revenue || '').toLowerCase()) },
+    { label: 'Main Bottleneck', value: profile.mainBottleneck, field: 'mainBottleneck', editable: true },
+    { label: 'Primary Goal', value: profile.userPriority, field: 'userPriority', editable: true },
+  ];
+
+  const needsClarification = criticalParams.filter(p => p.requiresExact);
+
+  return { params: criticalParams, needsClarification };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MAIN HANDLER
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -628,6 +650,19 @@ export default async function handler(req, res) {
       const v = has(value);
       if (v) confirmed.push(`✅ ${label}: ${v}`);
       else unknown.push(label);
+    }
+
+    // ── Context Sufficiency Gate ──
+    const MINIMUM_REQUIRED_FIELDS = [
+      'companyName', 'industry', 'stage', 'revenue', 'mainBottleneck', 'teamSize'
+    ];
+    const missingCritical = MINIMUM_REQUIRED_FIELDS.filter(f => !has(p[f]));
+    if (missingCritical.length > 2) {
+      return res.status(400).json({
+        error: 'insufficient_context',
+        missing: missingCritical,
+        message: `Report quality requires: ${missingCritical.join(', ')}`
+      });
     }
 
     // ── Transcript ──
@@ -735,7 +770,11 @@ ${operatingModelBlock}
 ═══════════════════════════════════════════
 WEBSITE SCAN
 ═══════════════════════════════════════════
-${sessionData?.scrapedSummary || 'N/A'}
+${sessionData?.scrapedSummary
+  ? sessionData.scrapedSummary
+  : stageKey === 'pre_seed_idea'
+    ? '(Pre-seed stage — no website required. Focus diagnostic on idea validation, not optimization.)'
+    : '(Website not provided — base analysis on conversation data only)'}
 
 ═══════════════════════════════════════════
 REPORT STRUCTURE — v12 STRATEGIC NARRATIVE FORMAT
@@ -743,6 +782,23 @@ REPORT STRUCTURE — v12 STRATEGIC NARRATIVE FORMAT
 
 # Strategic Growth Plan
 ## ${companyName} | ${today}
+
+---
+
+## Before/After Transformation Summary
+
+Create this compact 2-column comparison IMMEDIATELY — this is the first thing leadership will look at:
+
+| Dimension | Today | In 90 Days |
+|-----------|-------|------------|
+| [Core metric 1 — e.g. MRR, Revenue] | [current confirmed value] | [target value + % improvement] |
+| [Core metric 2 — e.g. Churn, CAC] | [current confirmed value] | [target value] |
+| [Core metric 3 — e.g. Win Rate, Deal Size] | [current confirmed value] | [target value] |
+| [Core metric 4 — e.g. Sales Cycle] | [current confirmed value] | [target value] |
+| Biggest bottleneck | [current state from mainBottleneck] | [resolved state after 90-day plan] |
+
+Use ONLY confirmed data for "Today." Use 90-day targets from the roadmap for "In 90 Days."
+If a metric is unknown, use the stage median and label it "(est. \${${stageData?.label || 'stage'}} median)".
 
 ---
 
@@ -824,6 +880,8 @@ CREATIVITY MANDATE: Go BEYOND classic GTM playbooks. The user is paying for stra
 - **the_obvious_play:** What the standard playbook says
 - **the_creative_edge:** The non-obvious twist or unconventional approach that makes this recommendation uniquely powerful for THIS company
 - **trade_off / negative_externality:** What is the downside or tension?
+- **resources_required:** [people needed (FTE or hours/week), tools (with monthly cost), budget range €X-Y]
+- **success_metric:** One measurable KPI that proves this priority is working by end of its window
 - **prerequisite_for:** What does completing this enable in Priority 2?
 - Week-by-week plan with specific actions, deliverables, success metrics
 
@@ -832,6 +890,8 @@ CREATIVITY MANDATE: Go BEYOND classic GTM playbooks. The user is paying for stra
 - **the_obvious_play:** [standard approach]
 - **the_creative_edge:** [the unconventional angle]
 - **trade_off / negative_externality:** [specific tension]
+- **resources_required:** [people needed (FTE or hours/week), tools (with monthly cost), budget range €X-Y]
+- **success_metric:** One measurable KPI that proves this priority is working by end of its window
 - **depends_on:** What from Priority 1 must be done first?
 - **prerequisite_for:** What does this enable in Priority 3?
 
@@ -840,7 +900,22 @@ CREATIVITY MANDATE: Go BEYOND classic GTM playbooks. The user is paying for stra
 - **the_obvious_play:** [standard approach]
 - **the_creative_edge:** [the unconventional angle]
 - **trade_off / negative_externality:** [specific tension]
+- **resources_required:** [people needed (FTE or hours/week), tools (with monthly cost), budget range €X-Y]
+- **success_metric:** One measurable KPI that proves this priority is working by end of its window
 - **depends_on:** What from Priority 2 must be done first?
+
+---
+
+## Cost of Inaction (30/60/90 Days)
+
+Based on the diagnosed findings, calculate what staying in the current state costs:
+
+- **30 days of inaction:** [specific consequence — e.g., "At current churn of X%, you lose ~€Y MRR this month"]
+- **60 days of inaction:** [compounding effect — show how the damage accelerates]
+- **90 days of inaction:** [critical threshold — where does this problem become irreversible or structurally harder to fix?]
+
+Use ONLY confirmed metrics for calculations. If a metric is unknown, use the stage median benchmark and label clearly: "(est. based on ${stageData?.label || 'stage'} median)".
+Be specific and data-grounded. This section creates legitimate urgency, not fear — anchor every claim in numbers.
 
 ---
 

@@ -452,6 +452,106 @@ async function callGemini(prompt, key) {
 // PHASE-SPECIFIC INSTRUCTIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// STAGE-SPECIFIC QUESTION SETS — tailored discovery per company maturity
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const QUESTION_SETS = {
+  pre_seed_idea: [
+    'What problem are you solving, and who has this problem most acutely?',
+    'Have you spoken to potential customers? What did you learn?',
+    'What makes your approach different from existing solutions?',
+    'What would it take to get your first 10 paying customers?',
+  ],
+  seed_startup: [
+    'Who are your first customers and how did you find them?',
+    'What\'s your current conversion rate from interest to paid?',
+    'What\'s the #1 reason deals don\'t close?',
+  ],
+  early_scale: [
+    'Walk me through your current sales process — from first touch to close.',
+    'Which channel drives the most revenue today, and who owns it?',
+    'What breaks down first when volume increases?',
+  ],
+  expansion_enterprise: [
+    'What\'s your Net Revenue Retention? Where is expansion revenue coming from?',
+    'How does your RevOps function operate — who owns data, tools, and process?',
+    'Which enterprise segments are you winning in, and which are you losing?',
+  ],
+};
+
+export function getQuestionSet(stageKey) {
+  return QUESTION_SETS[stageKey] || QUESTION_SETS.seed_startup;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONTEXT-AWARE QUESTION SEQUENCING
+// Ensures the agent follows a logical progression: identity → GTM → metrics.
+// The returned instruction is injected into the system prompt each turn.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ASSUMPTION SUMMARY — builds a plain-language list of what we believe so far
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function buildAssumptionSummary(profile) {
+  const a = [];
+  if (profile.companyName && profile.industry)
+    a.push(`${profile.companyName} is a ${profile.stage || 'early-stage'} ${profile.industry} company`);
+  if (profile.revenue)
+    a.push(`Current revenue: ${profile.revenue}`);
+  if (profile.teamSize)
+    a.push(`Team size: ${profile.teamSize}`);
+  if (profile.businessModel)
+    a.push(`Business model: ${profile.businessModel}`);
+  if (profile.salesMotion)
+    a.push(`Sales motion: ${profile.salesMotion}`);
+  if (profile.channels)
+    a.push(`Primary channels: ${profile.channels}`);
+  if (profile.icpTitle)
+    a.push(`ICP / buyer: ${profile.icpTitle}`);
+  if (profile.avgDealSize)
+    a.push(`Avg deal size: ${profile.avgDealSize}`);
+  if (profile.mainBottleneck)
+    a.push(`Primary challenge: ${profile.mainBottleneck}`);
+  if (profile.whoCloses)
+    a.push(`Sales currently closed by: ${profile.whoCloses}`);
+  if (profile.churnRate)
+    a.push(`Churn rate: ${profile.churnRate}`);
+  if (profile.funding)
+    a.push(`Funding: ${profile.funding}`);
+  return a;
+}
+
+function getNextQuestionContext(profile, conversationLength) {
+  // Don't ask about metrics until we know basic identity
+  const hasIdentity = profile.companyName && profile.industry && profile.stage;
+  const hasGTM = profile.salesMotion || profile.channels;
+
+  if (!hasIdentity && conversationLength > 0) {
+    return {
+      phase: 'identity',
+      maxQuestions: 2,
+      instruction: 'Focus ONLY on company identity (company name, industry, stage). Do not ask about metrics or GTM yet.'
+    };
+  }
+  if (hasIdentity && !hasGTM) {
+    return {
+      phase: 'gtm',
+      maxQuestions: 2,
+      instruction: 'Identity is confirmed. Focus on sales motion and channels. Do not jump to detailed metrics yet.'
+    };
+  }
+  if (hasGTM) {
+    return {
+      phase: 'metrics',
+      maxQuestions: 2,
+      instruction: 'Identity and GTM are confirmed. You may now collect specific metrics (churn, CAC, deal size, win rate, etc.).'
+    };
+  }
+  return null;
+}
+
 function getPhasePrompt(S) {
   const p = S.profile;
   const phase = PHASES[S.currentPhase];
@@ -463,10 +563,15 @@ function getPhasePrompt(S) {
   const stagePlaybook = getStagePlaybook(stageKey);
   const antiPatterns = stagePlaybook?.playbook?.antiPatterns || [];
   const marketCtx = getMarketContext();
+  const stageQuestions = getQuestionSet(stageKey);
 
   switch (S.currentPhase) {
-    case 'welcome':
-      return `PHASE: WELCOME (Turn ${S.phaseTurns + 1})
+    case 'welcome': {
+      const hasWebsite = !!(S.scrapedSummary && S.scrapedSummary.trim() && !S.scrapedSummary.startsWith('USER DESCRIPTION:'));
+      const hasWebsiteOrDesc = !!(S.scrapedSummary && S.scrapedSummary.trim());
+
+      if (hasWebsite) {
+        return `PHASE: WELCOME (Turn ${S.phaseTurns + 1})
 
 YOUR TASK:
 - Reference 3-4 SPECIFIC things from their website data (headlines, pricing, features, CTAs — quote them)
@@ -476,6 +581,25 @@ YOUR TASK:
 
 AFTER this turn, set phase_signals.welcome_done=true in your next response (when the user replies).
 This is your first impression — make it count. Show you did your homework.`;
+      }
+
+      // No website — stage-aware welcome
+      return `PHASE: WELCOME (Turn ${S.phaseTurns + 1})
+COMPANY STAGE: ${stagePlaybook?.label || stageKey}
+
+${hasWebsiteOrDesc ? 'The user provided a business description but no website.' : 'No website or description provided.'}
+
+YOUR TASK:
+${hasWebsiteOrDesc ? '- Reference what they described about their business' : '- Introduce yourself warmly and explain the diagnostic process'}
+- Acknowledge their stage: "${stagePlaybook?.label || 'Your stage'}" — and what that means for the diagnostic
+- Ask the FIRST stage-appropriate question to kick off discovery:
+  ${stageQuestions.map((q, i) => `${i + 1}. "${q}"`).join('\n  ')}
+- Pick the most natural opening question from the list above
+- Generate relevant buttons
+
+AFTER this turn, set phase_signals.welcome_done=true in your next response (when the user replies).
+Make this warm and stage-appropriate. Pre-seed founders need encouragement, not interrogation.`;
+    }
 
     case 'company':
       return `PHASE: COMPANY DNA (Turn ${S.phaseTurns + 1} of minimum ${phase.minTurns})
@@ -483,6 +607,10 @@ ${turnsLeft > 0 ? `You need at least ${turnsLeft} more turn(s) in this phase. Ta
 
 ═══ STAGE-AWARE BENCHMARKS FOR THIS COMPANY ═══
 ${stageBenchmarks}
+
+═══ STAGE-APPROPRIATE DISCOVERY QUESTIONS ═══
+Use these as inspiration for the questions you ask at this stage:
+${stageQuestions.map((q, i) => `  ${i + 1}. ${q}`).join('\n')}
 
 TOPICS TO EXPLORE (one or two per turn, go deep — LEAD WITH SITUATION before numbers):
 ${phase.depthTopics.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}
@@ -671,6 +799,8 @@ export default async function handler(req, res) {
     if (!gKey) return res.status(200).json({ message: '⚠️ GEMINI_API_KEY missing.', options: [{ key: 'restart', label: 'Retry' }], session_data: null, current_phase: 'error' });
 
     let S = input || createSession();
+    // Ensure asked_fields tracking array exists
+    if (!S.askedFields) S.askedFields = [];
     S.totalTurns++;
     S.phaseTurns++;
 
@@ -702,10 +832,12 @@ export default async function handler(req, res) {
     // ══════════════════════════════════════════════════
 
     if (choice === 'generate_report' || choice === 'update_and_generate') {
+      const depth = calculateDiagnosticDepth(S.profile);
       return res.status(200).json({
         step_id: 'GENERATE', message: 'Generating...', mode: 'buttons', options: [],
         allow_text: false, session_data: S, current_phase: 'finish',
-        turn_count: S.totalTurns, confidence_state: calcConf(S)
+        turn_count: S.totalTurns, confidence_state: calcConf(S),
+        diagnostic_depth: depth
       });
     }
 
@@ -716,6 +848,18 @@ export default async function handler(req, res) {
     if (choice === 'SNAPSHOT_INIT') {
       S.currentPhase = 'welcome';
       S.phaseTurns = 0;
+
+      // Resolve stage from intake form
+      if (contextData?.stage) {
+        const intakeStageMap = {
+          'pre_seed': 'pre_seed_idea', 'seed': 'seed_startup',
+          'early_scale': 'early_scale', 'expansion': 'expansion_enterprise'
+        };
+        const mapped = intakeStageMap[contextData.stage] || resolveStage(contextData.stage);
+        S.resolvedStage = mapped;
+        S.profile.companyStage = mapped;
+        S.profile.stage = contextData.stage;
+      }
 
       if (contextData) {
         S.profile.website = contextData.website || '';
@@ -774,9 +918,29 @@ export default async function handler(req, res) {
     // BUILD THE FULL PROMPT
     // ══════════════════════════════════════════════════
 
+    // ══════════════════════════════════════════════════
+    // DEDUPLICATION — build list of already-collected fields
+    // ══════════════════════════════════════════════════
+    const alreadyCollected = Object.entries(S.profile)
+      .filter(([k, v]) => {
+        if (Array.isArray(v)) return v.length > 0;
+        return v && typeof v === 'string' && v.trim() !== '';
+      })
+      .map(([k]) => k);
+    // Merge into askedFields (dedup)
+    S.askedFields = [...new Set([...S.askedFields, ...alreadyCollected])];
+
     const transcript = buildTranscript(S);
     const profileCtx = buildProfileContext(S);
     const phasePrompt = getPhasePrompt(S);
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // CONTEXT-AWARE SEQUENCING — gate what the agent may ask about this turn
+    // ══════════════════════════════════════════════════════════════════════════
+    const questionContext = getNextQuestionContext(S.profile, S.transcript.length);
+    const sequencingDirective = questionContext
+      ? `\n═══ QUESTION SEQUENCING DIRECTIVE (phase: ${questionContext.phase}, max ${questionContext.maxQuestions} questions) ═══\n${questionContext.instruction}\n`
+      : '';
 
     const fullPrompt = `You are the REVENUE ARCHITECT, a senior B2B revenue strategist and operating-model advisor (20+ years). You conduct deep discovery calls with founders and revenue leaders. Your style blends the rigour of a top-tier consultant with the warmth of a trusted advisor: **gentle** in tone, **clever** in the connections you draw, and **concise** in your questions — one sharp question is worth five generic ones.
 
@@ -802,7 +966,11 @@ Resolved: ${S.resolvedStage || 'not yet determined'}
 ${S.resolvedStage ? formatBenchmarksForPrompt(S.resolvedStage) : '(Stage not yet identified — ask about it)'}
 
 ═══ WEBSITE SCAN DATA ═══
-${S.scrapedSummary || '(none)'}
+${S.scrapedSummary
+  ? S.scrapedSummary
+  : (S.resolvedStage === 'pre_seed_idea'
+    ? '(Pre-seed stage — no website available. Focus on idea validation and customer discovery.)'
+    : '(No website data — base discovery on conversation only)')}
 ${attachmentContext}
 
 ═══ CURRENT STATE ═══
@@ -810,6 +978,17 @@ Phase: ${S.currentPhase} | Phase turn: ${S.phaseTurns} | Total turns: ${S.totalT
 
 ═══ YOUR INSTRUCTIONS ═══
 ${phasePrompt}
+
+═══ ALREADY COLLECTED FIELDS (DO NOT re-ask these) ═══
+${S.askedFields.length > 0 ? S.askedFields.join(', ') : '(none yet)'}
+Before asking a question, check this list. If the data point is here, SKIP it entirely.
+${sequencingDirective}
+${(S.totalTurns > 0 && S.totalTurns % 4 === 0 && S.currentPhase !== 'welcome' && S.currentPhase !== 'pre_finish') ? `
+═══ ASSUMPTION VERIFICATION CHECK (every ~4 turns) ═══
+Before your main question this turn, prepend a brief assumption check.
+Use this format: "Quick check — here's my current understanding:\n${buildAssumptionSummary(S.profile).map(a => '• ' + a).join('\n')}\nIs anything off?"
+Then continue with your normal phase question. Keep the check compact (2-3 lines max).
+` : ''}
 
 ${choice !== 'SNAPSHOT_INIT' ? `═══ USER'S LATEST MESSAGE ═══\n"${choice}"` : '═══ This is the FIRST message — welcome them ═══'}
 
@@ -828,6 +1007,13 @@ ${choice !== 'SNAPSHOT_INIT' ? `═══ USER'S LATEST MESSAGE ═══\n"${ch
     "diagnosis_validated": false
   }
 }
+
+═══ RESPONSE RULES ═══
+- Maximum 2 questions per turn. Never ask 3+.
+- Maximum 160 words per response.
+- Never repeat information the user has already provided.
+- Do not ask for clarification if you have sufficient context to proceed.
+- If user gives a vague answer, make a reasonable assumption, STATE it explicitly, and move on.
 
 ═══ RULES ═══
 1. READ THE TRANSCRIPT. Never ask something that was already discussed. If the transcript shows you already asked about revenue and the user answered, DO NOT ask about revenue again.
@@ -914,7 +1100,11 @@ ${choice !== 'SNAPSHOT_INIT' ? `═══ USER'S LATEST MESSAGE ═══\n"${ch
     const hasGen = options.some(o => o.key === 'generate_report');
     const mode = (isFinish && hasGen) ? 'buttons' : 'mixed';
 
-    console.log(`[v12] T${S.totalTurns} phase:${S.currentPhase} pt:${S.phaseTurns} stage:${S.resolvedStage || '?'} opts:${options.length} conf:${calcConf(S).total}%`);
+    const depthScore = calculateDiagnosticDepth(S.profile);
+    console.log(`[v12] T${S.totalTurns} phase:${S.currentPhase} pt:${S.phaseTurns} stage:${S.resolvedStage || '?'} opts:${options.length} depth:${depthScore}%`);
+
+    // Build assumptions for the frontend "What I know" panel
+    const assumptions = buildAssumptionSummary(S.profile);
 
     return res.status(200).json({
       step_id: S.currentPhase,
@@ -924,7 +1114,9 @@ ${choice !== 'SNAPSHOT_INIT' ? `═══ USER'S LATEST MESSAGE ═══\n"${ch
       session_data: S,
       current_phase: PHASES[S.currentPhase]?.display || S.currentPhase,
       turn_count: S.totalTurns,
-      confidence_state: calcConf(S)
+      confidence_state: calcConf(S),
+      diagnostic_depth: depthScore,
+      assumptions
     });
 
   } catch (e) {
@@ -982,32 +1174,38 @@ function buildFallback(S) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CONFIDENCE — weighted across all fields, scales properly to ~15-20 turns
+// DIAGNOSTIC DEPTH — weighted scoring based on field importance, not question count
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function calcConf(S) {
-  const p = S.profile;
-  // Weighted: core fields worth more, depth fields worth less
-  const core = ['companyName', 'businessModel', 'stage', 'companyStage', 'revenue', 'teamSize', 'funding',
-    'icpTitle', 'salesMotion', 'channels', 'avgDealSize',
-    'salesProcess', 'whoCloses', 'mainBottleneck',
-    'currentSituation', 'orgStructure']; // 16 items, 4 pts each = 64
-  const depth = ['teamRoles', 'pricingModel', 'revenueGrowth', 'competitiveLandscape',
-    'icpCompanySize', 'icpPainPoints', 'bestChannel', 'salesCycle',
-    'winRate', 'lostDealReasons', 'churnRate', 'crm', 'tools',
-    'budgetLevel', 'constraints',
-    'decisionMaking', 'keyDependencies', 'teamMorale', 'systemsLandscape',
-    'roadmap', 'plannedChanges', 'teamEnablement']; // 22 items, 2 pts each = 44
-  const milestones = ['diagnosedProblems', 'userPriority']; // 2 items, 6 pts each = 12
-  // Total possible: 64 + 44 + 12 = 120 pts → normalized to 100%
+function calculateDiagnosticDepth(profile) {
+  // Weighted fields — not all questions are equal
+  const weights = {
+    // Identity (required): 30 points total
+    companyName: 5, industry: 8, stage: 8, teamSize: 5, revenue: 4,
+    // GTM (high value): 25 points total
+    mainBottleneck: 10, salesMotion: 8, icpTitle: 7,
+    // Metrics (high value): 25 points total
+    churnRate: 8, avgDealSize: 7, winRate: 5, cac: 5,
+    // Operating model: 10 points total
+    whoCloses: 5, crm: 3, tools: 2,
+    // Context: 10 points total
+    diagnosedProblems: 5, userPriority: 5,
+  };
 
   let score = 0;
-  for (const k of core) { const v = p[k]; if (v && v.trim()) score += 4; }
-  for (const k of depth) { const v = p[k]; if (v && v.trim()) score += 2; }
-  for (const k of milestones) {
-    const v = p[k];
-    if (Array.isArray(v) ? v.length > 0 : (v && v.trim())) score += 6;
+  let max = 0;
+  for (const [field, weight] of Object.entries(weights)) {
+    max += weight;
+    const val = profile[field];
+    if (val && typeof val === 'string' && val.trim().length > 0) score += weight;
+    if (Array.isArray(val) && val.length > 0) score += weight;
   }
 
-  return { total: Math.min(100, Math.round((score / 120) * 100)) };
+  return Math.round((score / max) * 100);
+}
+
+// Backward-compatible wrapper used in responses
+function calcConf(S) {
+  const depth = calculateDiagnosticDepth(S.profile);
+  return { total: depth };
 }
