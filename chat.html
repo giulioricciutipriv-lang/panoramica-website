@@ -151,7 +151,7 @@
                         <p class="text-p-grey text-sm">AI-powered B2B revenue diagnostic. Provide your digital footprint to begin.</p>
                     </div>
                 </div>
-                <form id="form" onsubmit="init(event)" class="space-y-4">
+                <form id="form" onsubmit="init(event)" class="space-y-4" novalidate>
                     <div>
                         <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Company Stage <span class="text-red-400">*</span></label>
                         <select id="f-stage" required onchange="updateWebsiteField()" class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none transition-colors appearance-none cursor-pointer" style='background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 fill=%27%23888%27 viewBox=%270 0 16 16%27%3E%3Cpath d=%27M8 11L3 6h10z%27/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center'>
@@ -466,6 +466,12 @@
 
     // Build sorted keys for sidebar rendering
     const GLOSSARY_KEYS = Object.keys(GLOSSARY).sort();
+
+    // ═══════════════════════════════════════════════════════════════
+    // DOM HELPERS (must be defined before any immediate DOM access)
+    // ═══════════════════════════════════════════════════════════════
+    const $ = id => document.getElementById(id);
+
     // Regex to match glossary terms in rendered HTML (word-boundary, longest first)
     const _glossTermsSorted = Object.keys(GLOSSARY).sort((a, b) => b.length - a.length);
     const _glossRe = new RegExp('\\b(' + _glossTermsSorted.map(t => t.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')).join('|') + ')\\b', 'g');
@@ -625,9 +631,8 @@
     let answerHistory = [];   // Ordered list of cached answers for audit trail
 
     // ═══════════════════════════════════════════════════════════════
-    // DOM HELPERS
+    // DOM ELEMENT REFERENCES
     // ═══════════════════════════════════════════════════════════════
-    const $ = id => document.getElementById(id);
     const chat = $('chat'), msgs = $('msgs'), opts = $('opts'), inp = $('inp'), ti = $('ti');
 
     function scroll() {
@@ -1239,11 +1244,16 @@
         const l = $('f-li').value.trim();
         const cfg = websiteConfig[s];
 
-        // Validate URL only if required or provided
+        // Validate website URL only if required or provided
         if (w) {
-            try { new URL(w); } catch { alert('Please enter a valid URL'); return; }
+            try { new URL(w); } catch { alert('Please enter a valid website URL (include https://)'); return; }
         } else if (cfg?.required) {
             alert('Please enter your company website'); return;
+        }
+
+        // Validate LinkedIn URL if provided
+        if (l) {
+            try { new URL(l); } catch { alert('Please enter a valid LinkedIn URL (include https://)'); return; }
         }
 
         // Disable button
