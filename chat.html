@@ -1,375 +1,1257 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Revenue Architect</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script>
-        tailwind.config={theme:{extend:{colors:{'p-bg':'#030303','p-panel':'#0A0A0A','p-card':'#0F0F0F','p-lime':'#CDFF00','p-lime2':'#B8E600','p-grey':'#888','p-greyL':'#A0A0A0','p-bdr':'#1A1A1A','p-bdr2':'#2A2A2A'},fontFamily:{sans:['Inter','system-ui'],mono:['JetBrains Mono','monospace']}}}}
-    </script>
-    <style>
-        *{box-sizing:border-box}html,body{height:100%;margin:0;padding:0}
-        body{background:#030303;color:#fff;display:flex;flex-direction:column;overflow:hidden}
-        /* Scrollbar */
-        .scr::-webkit-scrollbar{width:6px}.scr::-webkit-scrollbar-track{background:transparent}.scr::-webkit-scrollbar-thumb{background:#2A2A2A;border-radius:3px}
-        /* Markdown prose */
-        .prose{font-size:.9375rem;line-height:1.7}.prose p{margin-bottom:1em;color:#E0E0E0}.prose p:last-child{margin-bottom:0}.prose strong{color:#fff;font-weight:600}.prose em{color:#B0B0B0}
-        .prose ul,.prose ol{padding-left:1.5em;margin:1em 0;color:#C0C0C0}.prose li{margin-bottom:.5em}.prose li::marker{color:#CDFF00}
-        .prose a{color:#CDFF00;text-decoration:underline}.prose a:hover{color:#fff}
-        .prose code{background:#1A1A1A;padding:.2em .4em;border-radius:4px;font-size:.85em}
-        .prose h1,.prose h2,.prose h3{color:#fff;font-weight:600;margin:1.2em 0 .6em}.prose h1{font-size:1.4em}.prose h2{font-size:1.2em}.prose h3{font-size:1.05em}
-        .prose blockquote{border-left:3px solid #CDFF00;padding-left:1em;margin:1em 0;color:#A0A0A0;font-style:italic}
-        .prose hr{border:none;border-top:1px solid #2A2A2A;margin:1.5em 0}
-        .prose table{width:100%;border-collapse:collapse;margin:1em 0;font-size:.85em}
-        .prose th{text-align:left;padding:6px 10px;border-bottom:2px solid #333;color:#CDFF00;font-weight:600}
-        .prose td{padding:5px 10px;border-bottom:1px solid #1A1A1A;color:#C0C0C0}
-        /* Animations */
-        @keyframes mi{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}.mi{animation:mi .4s cubic-bezier(.16,1,.3,1) forwards}
-        @keyframes td{0%,60%,100%{opacity:.3}30%{opacity:1}}.td{animation:td 1.4s infinite;width:6px;height:6px;background:#CDFF00;border-radius:50%}.td:nth-child(2){animation-delay:.15s}.td:nth-child(3){animation-delay:.3s}
-        /* Phase dots */
-        .dot{width:10px;height:10px;border-radius:50%;border:2px solid #333;transition:all .3s ease}.dot.on{background:#22c55e;border-color:#22c55e}.dot.now{background:#CDFF00;border-color:#CDFF00;box-shadow:0 0 8px rgba(205,255,0,.4)}.dot.off{background:transparent}
-        .ln{height:2px;width:20px;transition:background .3s}.ln.on{background:#22c55e}.ln.now{background:linear-gradient(90deg,#22c55e,#CDFF00)}.ln.off{background:#1A1A1A}
-        /* Collapsible options */
-        .opts-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 16px;background:#0F0F0F;border:1px solid #1A1A1A;border-radius:12px;cursor:pointer;transition:all .2s ease;user-select:none}
-        .opts-toggle:hover{border-color:rgba(205,255,0,.3);background:#141414}
-        .opts-toggle .chevron{transition:transform .25s ease}
-        .opts-toggle.open .chevron{transform:rotate(180deg)}
-        .opts-body{max-height:0;overflow:hidden;transition:max-height .3s ease, opacity .25s ease;opacity:0}
-        .opts-body.open{opacity:1}
-        /* Mobile tweaks */
-        @media(max-width:640px){
-            .prose{font-size:.875rem;line-height:1.6}
-            .phase-labels{display:none!important}
-        }
-        /* Go-back button */
-        .back-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;font-size:13px;color:#888;background:transparent;border:1px solid transparent;border-radius:10px;cursor:pointer;transition:all .2s ease;user-select:none}
-        .back-btn:hover{color:#CDFF00;border-color:rgba(205,255,0,.2);background:rgba(205,255,0,.04)}
-        .back-btn svg{transition:transform .2s ease}
-        .back-btn:hover svg{transform:translateX(-3px)}
-        /* Answer selection cache - previously selected option highlight */
-        .opt-selected{border-color:rgba(205,255,0,.45)!important;background:rgba(205,255,0,.06)!important;box-shadow:0 0 12px rgba(205,255,0,.08)}
-        .opt-selected:hover{border-color:rgba(205,255,0,.6)!important}
-        /* Instructions modal */
-        .instr-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .3s ease}
-        .instr-overlay.open{opacity:1;pointer-events:auto}
-        .instr-panel{background:#0A0A0A;border:1px solid #1A1A1A;border-radius:20px;width:100%;max-width:620px;max-height:85vh;overflow-y:auto;position:relative;transform:translateY(20px) scale(.97);transition:transform .3s cubic-bezier(.16,1,.3,1);box-shadow:0 32px 80px rgba(0,0,0,.6)}
-        .instr-overlay.open .instr-panel{transform:translateY(0) scale(1)}
-        .instr-panel::-webkit-scrollbar{width:5px}.instr-panel::-webkit-scrollbar-track{background:transparent}.instr-panel::-webkit-scrollbar-thumb{background:#2A2A2A;border-radius:3px}
-        .instr-panel h3{color:#fff;font-size:1rem;font-weight:600;margin:1.1em 0 .4em}.instr-panel h3:first-of-type{margin-top:0}
-        .instr-panel p,.instr-panel li{color:#C0C0C0;font-size:.875rem;line-height:1.65}
-        .instr-panel ul{list-style:disc;padding-left:1.4em;margin:.4em 0 1em}
-        .instr-panel li{margin-bottom:.35em}
-        .instr-panel li::marker{color:#CDFF00}
-        .instr-panel strong{color:#fff;font-weight:600}
-        .instr-panel a{color:#CDFF00;text-decoration:underline}
-        .instr-panel a:hover{color:#fff}
-        .instr-panel .tag{display:inline-block;background:rgba(205,255,0,.1);color:#CDFF00;font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.05em}
-        .instr-btn{display:flex;align-items:center;gap:5px;padding:6px 10px;font-size:12px;color:#888;background:transparent;border:1px solid transparent;border-radius:8px;cursor:pointer;transition:all .2s ease;user-select:none}
-        .instr-btn:hover{color:#CDFF00;border-color:rgba(205,255,0,.2);background:rgba(205,255,0,.04)}
-        /* Glossary term highlight */
-        .glossary-term{color:#CDFF00;border-bottom:1px dashed rgba(205,255,0,.35);cursor:help;transition:border-color .2s}
-        .glossary-term:hover{border-bottom-color:#CDFF00}
-        /* Glossary tooltip */
-        .gloss-tip{position:fixed;z-index:300;background:#0A0A0A;border:1px solid #2A2A2A;border-radius:14px;padding:16px 18px;max-width:340px;width:max-content;box-shadow:0 20px 60px rgba(0,0,0,.7);pointer-events:auto;opacity:0;transform:translateY(6px);transition:opacity .2s ease,transform .2s ease}
-        .gloss-tip.show{opacity:1;transform:translateY(0)}
-        .gloss-tip .gt-abbr{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#CDFF00;font-weight:700;margin-bottom:2px}
-        .gloss-tip .gt-full{font-size:13px;color:#fff;font-weight:600;margin-bottom:8px}
-        .gloss-tip .gt-def{font-size:12px;color:#C0C0C0;line-height:1.55;margin-bottom:8px}
-        .gloss-tip .gt-ex{font-size:11px;color:#888;line-height:1.5;padding:8px 10px;background:#141414;border-radius:8px;margin-bottom:6px}
-        .gloss-tip .gt-bm{font-size:11px;color:#CDFF00;font-weight:500}
-        .gloss-tip .gt-close{position:absolute;top:8px;right:10px;background:none;border:none;color:#555;font-size:16px;cursor:pointer;line-height:1;padding:2px}
-        .gloss-tip .gt-close:hover{color:#fff}
-        /* Glossary sidebar */
-        .gloss-sidebar{position:fixed;top:0;right:0;bottom:0;z-index:250;width:360px;max-width:92vw;background:#0A0A0A;border-left:1px solid #1A1A1A;transform:translateX(100%);transition:transform .3s cubic-bezier(.16,1,.3,1);display:flex;flex-direction:column;box-shadow:-20px 0 60px rgba(0,0,0,.5)}
-        .gloss-sidebar.open{transform:translateX(0)}
-        .gloss-backdrop{position:fixed;inset:0;z-index:240;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .25s}
-        .gloss-backdrop.open{opacity:1;pointer-events:auto}
-        .gloss-sidebar .gs-head{padding:16px 20px;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-        .gloss-sidebar .gs-search{margin:12px 16px;position:relative;flex-shrink:0}
-        .gloss-sidebar .gs-search input{width:100%;background:#141414;border:1px solid #1A1A1A;border-radius:10px;padding:10px 14px 10px 36px;color:#fff;font-size:13px;outline:none;transition:border-color .2s}
-        .gloss-sidebar .gs-search input:focus{border-color:rgba(205,255,0,.4)}
-        .gloss-sidebar .gs-search input::placeholder{color:#555}
-        .gloss-sidebar .gs-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#555}
-        .gloss-sidebar .gs-list{flex:1;overflow-y:auto;padding:8px 16px 20px}
-        .gloss-sidebar .gs-list::-webkit-scrollbar{width:5px}.gloss-sidebar .gs-list::-webkit-scrollbar-track{background:transparent}.gloss-sidebar .gs-list::-webkit-scrollbar-thumb{background:#2A2A2A;border-radius:3px}
-        .gloss-sidebar .gs-entry{background:#0F0F0F;border:1px solid #1A1A1A;border-radius:12px;padding:14px 16px;margin-bottom:10px;transition:border-color .2s}
-        .gloss-sidebar .gs-entry:hover{border-color:#2A2A2A}
-        .gloss-sidebar .gs-entry .ge-term{font-size:13px;font-weight:700;color:#CDFF00;margin-bottom:2px}
-        .gloss-sidebar .gs-entry .ge-full{font-size:11px;color:#888;margin-bottom:6px}
-        .gloss-sidebar .gs-entry .ge-def{font-size:12px;color:#C0C0C0;line-height:1.55;margin-bottom:6px}
-        .gloss-sidebar .gs-entry .ge-ex{font-size:11px;color:#777;background:#141414;border-radius:8px;padding:8px 10px;margin-bottom:4px;line-height:1.5}
-        .gloss-sidebar .gs-entry .ge-bm{font-size:11px;color:#CDFF00;font-weight:500}
-        .gloss-sidebar .gs-empty{text-align:center;color:#555;font-size:13px;padding:32px 0}
-        /* Assumptions panel ("What I know so far") */
-        .assume-bar{max-width:48rem;margin:0 auto;padding:0 1rem}
-        .assume-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;padding:8px 14px;background:#0A0A0A;border:1px solid #1A1A1A;border-radius:10px;cursor:pointer;transition:all .2s ease;user-select:none}
-        .assume-toggle:hover{border-color:rgba(205,255,0,.25);background:#0F0F0F}
-        .assume-toggle .at-left{display:flex;align-items:center;gap:8px;font-size:12px;color:#A0A0A0;font-weight:500}
-        .assume-toggle .at-left svg{color:#CDFF00}
-        .assume-toggle .at-count{background:rgba(205,255,0,.12);color:#CDFF00;font-size:10px;font-weight:700;padding:1px 7px;border-radius:6px}
-        .assume-toggle .at-chev{transition:transform .25s ease;color:#555}
-        .assume-toggle.open .at-chev{transform:rotate(180deg)}
-        .assume-body{max-height:0;overflow:hidden;transition:max-height .3s ease,opacity .2s ease;opacity:0}
-        .assume-body.open{opacity:1}
-        .assume-body .ab-inner{padding:8px 0 4px}
-        .assume-body .ab-item{display:flex;align-items:flex-start;gap:8px;padding:5px 14px;font-size:12px;color:#C0C0C0;line-height:1.5}
-        .assume-body .ab-item .ab-dot{width:5px;height:5px;border-radius:50%;background:#CDFF00;margin-top:6px;flex-shrink:0}
-        .assume-body .ab-empty{padding:10px 14px;font-size:12px;color:#555;font-style:italic}
-        /* Confirmation overlay */
-        .confirm-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .3s ease}
-        .confirm-overlay.open{opacity:1;pointer-events:auto}
-        .confirm-panel{background:#0A0A0A;border:1px solid #1A1A1A;border-radius:20px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;position:relative;transform:translateY(20px) scale(.97);transition:transform .3s cubic-bezier(.16,1,.3,1);box-shadow:0 32px 80px rgba(0,0,0,.6)}
-        .confirm-overlay.open .confirm-panel{transform:translateY(0) scale(1)}
-        .confirm-panel::-webkit-scrollbar{width:5px}.confirm-panel::-webkit-scrollbar-track{background:transparent}.confirm-panel::-webkit-scrollbar-thumb{background:#2A2A2A;border-radius:3px}
-        .confirm-row{background:#0F0F0F;border:1px solid #1A1A1A;border-radius:12px;padding:14px 16px;transition:border-color .2s}
-        .confirm-row:hover{border-color:#2A2A2A}
-        .confirm-row.needs-exact{border-color:rgba(250,204,21,.3);background:rgba(250,204,21,.03)}
-        .confirm-row .cr-label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#888;font-weight:600;margin-bottom:6px}
-        .confirm-row .cr-input{width:100%;background:transparent;border:none;color:#fff;font-size:14px;font-weight:500;outline:none;padding:0}
-        .confirm-row .cr-input::placeholder{color:#444}
-        .confirm-row .cr-input:focus{color:#CDFF00}
-        .confirm-row .cr-hint{font-size:11px;color:#facc15;margin-top:6px;display:flex;align-items:center;gap:6px;line-height:1.35}
-    </style>
-    <script src="auth-check.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Revenue Architect</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { 'p-bg': '#030303', 'p-panel': '#0A0A0A', 'p-card': '#0F0F0F', 'p-lime': '#CDFF00', 'p-lime2': '#B8E600', 'p-grey': '#888', 'p-greyL': '#A0A0A0', 'p-bdr': '#1A1A1A', 'p-bdr2': '#2A2A2A' }, fontFamily: { sans: ['Inter', 'system-ui'], mono: ['JetBrains Mono', 'monospace'] } } } }
+  </script>
+  <style>
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      background: #030303;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden
+    }
+
+    /* Scrollbar */
+    .scr::-webkit-scrollbar {
+      width: 6px
+    }
+
+    .scr::-webkit-scrollbar-track {
+      background: transparent
+    }
+
+    .scr::-webkit-scrollbar-thumb {
+      background: #2A2A2A;
+      border-radius: 3px
+    }
+
+    /* Markdown prose */
+    .prose {
+      font-size: .9375rem;
+      line-height: 1.7
+    }
+
+    .prose p {
+      margin-bottom: 1em;
+      color: #E0E0E0
+    }
+
+    .prose p:last-child {
+      margin-bottom: 0
+    }
+
+    .prose strong {
+      color: #fff;
+      font-weight: 600
+    }
+
+    .prose em {
+      color: #B0B0B0
+    }
+
+    .prose ul,
+    .prose ol {
+      padding-left: 1.5em;
+      margin: 1em 0;
+      color: #C0C0C0
+    }
+
+    .prose li {
+      margin-bottom: .5em
+    }
+
+    .prose li::marker {
+      color: #CDFF00
+    }
+
+    .prose a {
+      color: #CDFF00;
+      text-decoration: underline
+    }
+
+    .prose a:hover {
+      color: #fff
+    }
+
+    .prose code {
+      background: #1A1A1A;
+      padding: .2em .4em;
+      border-radius: 4px;
+      font-size: .85em
+    }
+
+    .prose h1,
+    .prose h2,
+    .prose h3 {
+      color: #fff;
+      font-weight: 600;
+      margin: 1.2em 0 .6em
+    }
+
+    .prose h1 {
+      font-size: 1.4em
+    }
+
+    .prose h2 {
+      font-size: 1.2em
+    }
+
+    .prose h3 {
+      font-size: 1.05em
+    }
+
+    .prose blockquote {
+      border-left: 3px solid #CDFF00;
+      padding-left: 1em;
+      margin: 1em 0;
+      color: #A0A0A0;
+      font-style: italic
+    }
+
+    .prose hr {
+      border: none;
+      border-top: 1px solid #2A2A2A;
+      margin: 1.5em 0
+    }
+
+    .prose table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1em 0;
+      font-size: .85em
+    }
+
+    .prose th {
+      text-align: left;
+      padding: 6px 10px;
+      border-bottom: 2px solid #333;
+      color: #CDFF00;
+      font-weight: 600
+    }
+
+    .prose td {
+      padding: 5px 10px;
+      border-bottom: 1px solid #1A1A1A;
+      color: #C0C0C0
+    }
+
+    /* Animations */
+    @keyframes mi {
+      from {
+        opacity: 0;
+        transform: translateY(12px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    .mi {
+      animation: mi .4s cubic-bezier(.16, 1, .3, 1) forwards
+    }
+
+    @keyframes td {
+
+      0%,
+      60%,
+      100% {
+        opacity: .3
+      }
+
+      30% {
+        opacity: 1
+      }
+    }
+
+    .td {
+      animation: td 1.4s infinite;
+      width: 6px;
+      height: 6px;
+      background: #CDFF00;
+      border-radius: 50%
+    }
+
+    .td:nth-child(2) {
+      animation-delay: .15s
+    }
+
+    .td:nth-child(3) {
+      animation-delay: .3s
+    }
+
+    /* Phase dots */
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid #333;
+      transition: all .3s ease
+    }
+
+    .dot.on {
+      background: #22c55e;
+      border-color: #22c55e
+    }
+
+    .dot.now {
+      background: #CDFF00;
+      border-color: #CDFF00;
+      box-shadow: 0 0 8px rgba(205, 255, 0, .4)
+    }
+
+    .dot.off {
+      background: transparent
+    }
+
+    .ln {
+      height: 2px;
+      width: 20px;
+      transition: background .3s
+    }
+
+    .ln.on {
+      background: #22c55e
+    }
+
+    .ln.now {
+      background: linear-gradient(90deg, #22c55e, #CDFF00)
+    }
+
+    .ln.off {
+      background: #1A1A1A
+    }
+
+    /* Collapsible options */
+    .opts-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 10px 16px;
+      background: #0F0F0F;
+      border: 1px solid #1A1A1A;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all .2s ease;
+      user-select: none
+    }
+
+    .opts-toggle:hover {
+      border-color: rgba(205, 255, 0, .3);
+      background: #141414
+    }
+
+    .opts-toggle .chevron {
+      transition: transform .25s ease
+    }
+
+    .opts-toggle.open .chevron {
+      transform: rotate(180deg)
+    }
+
+    .opts-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height .3s ease, opacity .25s ease;
+      opacity: 0
+    }
+
+    .opts-body.open {
+      opacity: 1
+    }
+
+    /* Mobile tweaks */
+    @media(max-width:640px) {
+      .prose {
+        font-size: .875rem;
+        line-height: 1.6
+      }
+
+      .phase-labels {
+        display: none !important
+      }
+    }
+
+    /* Go-back button */
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+      color: #888;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all .2s ease;
+      user-select: none
+    }
+
+    .back-btn:hover {
+      color: #CDFF00;
+      border-color: rgba(205, 255, 0, .2);
+      background: rgba(205, 255, 0, .04)
+    }
+
+    .back-btn svg {
+      transition: transform .2s ease
+    }
+
+    .back-btn:hover svg {
+      transform: translateX(-3px)
+    }
+
+    /* Answer selection cache - previously selected option highlight */
+    .opt-selected {
+      border-color: rgba(205, 255, 0, .45) !important;
+      background: rgba(205, 255, 0, .06) !important;
+      box-shadow: 0 0 12px rgba(205, 255, 0, .08)
+    }
+
+    .opt-selected:hover {
+      border-color: rgba(205, 255, 0, .6) !important
+    }
+
+    /* Instructions modal */
+    .instr-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(0, 0, 0, .85);
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s ease
+    }
+
+    .instr-overlay.open {
+      opacity: 1;
+      pointer-events: auto
+    }
+
+    .instr-panel {
+      background: #0A0A0A;
+      border: 1px solid #1A1A1A;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 620px;
+      max-height: 85vh;
+      overflow-y: auto;
+      position: relative;
+      transform: translateY(20px) scale(.97);
+      transition: transform .3s cubic-bezier(.16, 1, .3, 1);
+      box-shadow: 0 32px 80px rgba(0, 0, 0, .6)
+    }
+
+    .instr-overlay.open .instr-panel {
+      transform: translateY(0) scale(1)
+    }
+
+    .instr-panel::-webkit-scrollbar {
+      width: 5px
+    }
+
+    .instr-panel::-webkit-scrollbar-track {
+      background: transparent
+    }
+
+    .instr-panel::-webkit-scrollbar-thumb {
+      background: #2A2A2A;
+      border-radius: 3px
+    }
+
+    .instr-panel h3 {
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 1.1em 0 .4em
+    }
+
+    .instr-panel h3:first-of-type {
+      margin-top: 0
+    }
+
+    .instr-panel p,
+    .instr-panel li {
+      color: #C0C0C0;
+      font-size: .875rem;
+      line-height: 1.65
+    }
+
+    .instr-panel ul {
+      list-style: disc;
+      padding-left: 1.4em;
+      margin: .4em 0 1em
+    }
+
+    .instr-panel li {
+      margin-bottom: .35em
+    }
+
+    .instr-panel li::marker {
+      color: #CDFF00
+    }
+
+    .instr-panel strong {
+      color: #fff;
+      font-weight: 600
+    }
+
+    .instr-panel a {
+      color: #CDFF00;
+      text-decoration: underline
+    }
+
+    .instr-panel a:hover {
+      color: #fff
+    }
+
+    .instr-panel .tag {
+      display: inline-block;
+      background: rgba(205, 255, 0, .1);
+      color: #CDFF00;
+      font-size: .7rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: .05em
+    }
+
+    .instr-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: #888;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all .2s ease;
+      user-select: none
+    }
+
+    .instr-btn:hover {
+      color: #CDFF00;
+      border-color: rgba(205, 255, 0, .2);
+      background: rgba(205, 255, 0, .04)
+    }
+
+    /* Glossary term highlight */
+    .glossary-term {
+      color: #CDFF00;
+      border-bottom: 1px dashed rgba(205, 255, 0, .35);
+      cursor: help;
+      transition: border-color .2s
+    }
+
+    .glossary-term:hover {
+      border-bottom-color: #CDFF00
+    }
+
+    /* Glossary tooltip */
+    .gloss-tip {
+      position: fixed;
+      z-index: 300;
+      background: #0A0A0A;
+      border: 1px solid #2A2A2A;
+      border-radius: 14px;
+      padding: 16px 18px;
+      max-width: 340px;
+      width: max-content;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .7);
+      pointer-events: auto;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity .2s ease, transform .2s ease
+    }
+
+    .gloss-tip.show {
+      opacity: 1;
+      transform: translateY(0)
+    }
+
+    .gloss-tip .gt-abbr {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: #CDFF00;
+      font-weight: 700;
+      margin-bottom: 2px
+    }
+
+    .gloss-tip .gt-full {
+      font-size: 13px;
+      color: #fff;
+      font-weight: 600;
+      margin-bottom: 8px
+    }
+
+    .gloss-tip .gt-def {
+      font-size: 12px;
+      color: #C0C0C0;
+      line-height: 1.55;
+      margin-bottom: 8px
+    }
+
+    .gloss-tip .gt-ex {
+      font-size: 11px;
+      color: #888;
+      line-height: 1.5;
+      padding: 8px 10px;
+      background: #141414;
+      border-radius: 8px;
+      margin-bottom: 6px
+    }
+
+    .gloss-tip .gt-bm {
+      font-size: 11px;
+      color: #CDFF00;
+      font-weight: 500
+    }
+
+    .gloss-tip .gt-close {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      background: none;
+      border: none;
+      color: #555;
+      font-size: 16px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px
+    }
+
+    .gloss-tip .gt-close:hover {
+      color: #fff
+    }
+
+    /* Glossary sidebar */
+    .gloss-sidebar {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 250;
+      width: 360px;
+      max-width: 92vw;
+      background: #0A0A0A;
+      border-left: 1px solid #1A1A1A;
+      transform: translateX(100%);
+      transition: transform .3s cubic-bezier(.16, 1, .3, 1);
+      display: flex;
+      flex-direction: column;
+      box-shadow: -20px 0 60px rgba(0, 0, 0, .5)
+    }
+
+    .gloss-sidebar.open {
+      transform: translateX(0)
+    }
+
+    .gloss-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 240;
+      background: rgba(0, 0, 0, .6);
+      backdrop-filter: blur(6px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s
+    }
+
+    .gloss-backdrop.open {
+      opacity: 1;
+      pointer-events: auto
+    }
+
+    .gloss-sidebar .gs-head {
+      padding: 16px 20px;
+      border-bottom: 1px solid #1A1A1A;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0
+    }
+
+    .gloss-sidebar .gs-search {
+      margin: 12px 16px;
+      position: relative;
+      flex-shrink: 0
+    }
+
+    .gloss-sidebar .gs-search input {
+      width: 100%;
+      background: #141414;
+      border: 1px solid #1A1A1A;
+      border-radius: 10px;
+      padding: 10px 14px 10px 36px;
+      color: #fff;
+      font-size: 13px;
+      outline: none;
+      transition: border-color .2s
+    }
+
+    .gloss-sidebar .gs-search input:focus {
+      border-color: rgba(205, 255, 0, .4)
+    }
+
+    .gloss-sidebar .gs-search input::placeholder {
+      color: #555
+    }
+
+    .gloss-sidebar .gs-search svg {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #555
+    }
+
+    .gloss-sidebar .gs-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 16px 20px
+    }
+
+    .gloss-sidebar .gs-list::-webkit-scrollbar {
+      width: 5px
+    }
+
+    .gloss-sidebar .gs-list::-webkit-scrollbar-track {
+      background: transparent
+    }
+
+    .gloss-sidebar .gs-list::-webkit-scrollbar-thumb {
+      background: #2A2A2A;
+      border-radius: 3px
+    }
+
+    .gloss-sidebar .gs-entry {
+      background: #0F0F0F;
+      border: 1px solid #1A1A1A;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      transition: border-color .2s
+    }
+
+    .gloss-sidebar .gs-entry:hover {
+      border-color: #2A2A2A
+    }
+
+    .gloss-sidebar .gs-entry .ge-term {
+      font-size: 13px;
+      font-weight: 700;
+      color: #CDFF00;
+      margin-bottom: 2px
+    }
+
+    .gloss-sidebar .gs-entry .ge-full {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 6px
+    }
+
+    .gloss-sidebar .gs-entry .ge-def {
+      font-size: 12px;
+      color: #C0C0C0;
+      line-height: 1.55;
+      margin-bottom: 6px
+    }
+
+    .gloss-sidebar .gs-entry .ge-ex {
+      font-size: 11px;
+      color: #777;
+      background: #141414;
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-bottom: 4px;
+      line-height: 1.5
+    }
+
+    .gloss-sidebar .gs-entry .ge-bm {
+      font-size: 11px;
+      color: #CDFF00;
+      font-weight: 500
+    }
+
+    .gloss-sidebar .gs-empty {
+      text-align: center;
+      color: #555;
+      font-size: 13px;
+      padding: 32px 0
+    }
+
+    /* Assumptions panel ("What I know so far") */
+    .assume-bar {
+      max-width: 48rem;
+      margin: 0 auto;
+      padding: 0 1rem
+    }
+
+    .assume-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 8px 14px;
+      background: #0A0A0A;
+      border: 1px solid #1A1A1A;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all .2s ease;
+      user-select: none
+    }
+
+    .assume-toggle:hover {
+      border-color: rgba(205, 255, 0, .25);
+      background: #0F0F0F
+    }
+
+    .assume-toggle .at-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #A0A0A0;
+      font-weight: 500
+    }
+
+    .assume-toggle .at-left svg {
+      color: #CDFF00
+    }
+
+    .assume-toggle .at-count {
+      background: rgba(205, 255, 0, .12);
+      color: #CDFF00;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 6px
+    }
+
+    .assume-toggle .at-chev {
+      transition: transform .25s ease;
+      color: #555
+    }
+
+    .assume-toggle.open .at-chev {
+      transform: rotate(180deg)
+    }
+
+    .assume-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height .3s ease, opacity .2s ease;
+      opacity: 0
+    }
+
+    .assume-body.open {
+      opacity: 1
+    }
+
+    .assume-body .ab-inner {
+      padding: 8px 0 4px
+    }
+
+    .assume-body .ab-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 5px 14px;
+      font-size: 12px;
+      color: #C0C0C0;
+      line-height: 1.5
+    }
+
+    .assume-body .ab-item .ab-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #CDFF00;
+      margin-top: 6px;
+      flex-shrink: 0
+    }
+
+    .assume-body .ab-empty {
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #555;
+      font-style: italic
+    }
+
+    /* Confirmation overlay */
+    .confirm-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(0, 0, 0, .85);
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s ease
+    }
+
+    .confirm-overlay.open {
+      opacity: 1;
+      pointer-events: auto
+    }
+
+    .confirm-panel {
+      background: #0A0A0A;
+      border: 1px solid #1A1A1A;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 85vh;
+      overflow-y: auto;
+      position: relative;
+      transform: translateY(20px) scale(.97);
+      transition: transform .3s cubic-bezier(.16, 1, .3, 1);
+      box-shadow: 0 32px 80px rgba(0, 0, 0, .6)
+    }
+
+    .confirm-overlay.open .confirm-panel {
+      transform: translateY(0) scale(1)
+    }
+
+    .confirm-panel::-webkit-scrollbar {
+      width: 5px
+    }
+
+    .confirm-panel::-webkit-scrollbar-track {
+      background: transparent
+    }
+
+    .confirm-panel::-webkit-scrollbar-thumb {
+      background: #2A2A2A;
+      border-radius: 3px
+    }
+
+    .confirm-row {
+      background: #0F0F0F;
+      border: 1px solid #1A1A1A;
+      border-radius: 12px;
+      padding: 14px 16px;
+      transition: border-color .2s
+    }
+
+    .confirm-row:hover {
+      border-color: #2A2A2A
+    }
+
+    .confirm-row.needs-exact {
+      border-color: rgba(250, 204, 21, .3);
+      background: rgba(250, 204, 21, .03)
+    }
+
+    .confirm-row .cr-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: #888;
+      font-weight: 600;
+      margin-bottom: 6px
+    }
+
+    .confirm-row .cr-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      outline: none;
+      padding: 0
+    }
+
+    .confirm-row .cr-input::placeholder {
+      color: #444
+    }
+
+    .confirm-row .cr-input:focus {
+      color: #CDFF00
+    }
+
+    .confirm-row .cr-hint {
+      font-size: 11px;
+      color: #facc15;
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      line-height: 1.35
+    }
+  </style>
+  <script src="auth-check.js"></script>
 </head>
+
 <body class="selection:bg-p-lime selection:text-black">
 
-    <!-- ═══════════════════ MODAL ═══════════════════ -->
-    <div id="modal" class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 transition-opacity duration-400">
-        <div class="bg-p-card border border-p-bdr w-full max-w-lg rounded-2xl shadow-2xl relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-64 h-64 bg-p-lime/5 blur-[80px] rounded-full pointer-events-none"></div>
-            <div class="relative z-10 p-6 sm:p-8">
-                <div class="flex items-start gap-4 mb-6">
-                    <div class="w-12 h-12 bg-p-lime/10 border border-p-lime/30 rounded-xl flex items-center justify-center text-p-lime shrink-0">
-                        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5"/></svg>
-                    </div>
-                    <div>
-                        <h2 class="text-xl sm:text-2xl font-bold mb-1">Revenue Architect</h2>
-                        <p class="text-p-grey text-sm">AI-powered B2B revenue diagnostic. Provide your digital footprint to begin.</p>
-                    </div>
-                </div>
-                <form id="form" onsubmit="init(event)" class="space-y-4" novalidate>
-                    <div>
-                        <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Company Stage <span class="text-red-400">*</span></label>
-                        <select id="f-stage" required onchange="updateWebsiteField()" class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none transition-colors appearance-none cursor-pointer" style='background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 fill=%27%23888%27 viewBox=%270 0 16 16%27%3E%3Cpath d=%27M8 11L3 6h10z%27/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center'>
-                            <option value="" disabled selected class="text-gray-600">Select your stage</option>
-                            <option value="pre_seed">Pre-Seed / Idea</option>
-                            <option value="seed">Seed / Startup</option>
-                            <option value="early_scale">Early Scale</option>
-                            <option value="expansion">Expansion / Enterprise</option>
-                        </select>
-                    </div>
-                    <div id="web-field">
-                        <label id="web-label" class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Company Website <span id="web-req" class="text-red-400">*</span></label>
-                        <input type="url" id="f-web" required placeholder="https://yourcompany.com" class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none placeholder:text-gray-600 transition-colors">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Business Description <span class="text-p-lime text-[10px] ml-1">IMPORTANT</span></label>
-                        <textarea id="f-desc" rows="2" placeholder="What you sell, who you sell to, how you make money..." class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none placeholder:text-gray-600 resize-none transition-colors"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Your LinkedIn Profile <span class="text-p-grey text-[10px]">OPTIONAL</span></label>
-                        <input type="url" id="f-li" placeholder="https://linkedin.com/in/yourname" class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none placeholder:text-gray-600 transition-colors">
-                    </div>
-                    <button type="submit" id="f-btn" class="w-full bg-p-lime text-black font-bold py-4 rounded-xl hover:bg-p-lime2 transition-all shadow-[0_0_40px_rgba(205,255,0,.15)] flex items-center justify-center gap-2 mt-2">
-                        <span>Start Diagnostic</span>
-                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-                    </button>
-                </form>
-            </div>
+  <!-- ═══════════════════ MODAL ═══════════════════ -->
+  <div id="modal"
+    class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 transition-opacity duration-400">
+    <div class="bg-p-card border border-p-bdr w-full max-w-lg rounded-2xl shadow-2xl relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-64 h-64 bg-p-lime/5 blur-[80px] rounded-full pointer-events-none"></div>
+      <div class="relative z-10 p-6 sm:p-8">
+        <div class="flex items-start gap-4 mb-6">
+          <div
+            class="w-12 h-12 bg-p-lime/10 border border-p-lime/30 rounded-xl flex items-center justify-center text-p-lime shrink-0">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5" />
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-xl sm:text-2xl font-bold mb-1">Revenue Architect</h2>
+            <p class="text-p-grey text-sm">AI-powered B2B revenue diagnostic. Provide your digital footprint to begin.
+            </p>
+          </div>
         </div>
+        <form id="form" onsubmit="init(event)" class="space-y-4" novalidate>
+          <div>
+            <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Company Stage <span
+                class="text-red-400">*</span></label>
+            <select id="f-stage" required onchange="updateWebsiteField()"
+              class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none transition-colors appearance-none cursor-pointer"
+              style='background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 fill=%27%23888%27 viewBox=%270 0 16 16%27%3E%3Cpath d=%27M8 11L3 6h10z%27/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center'>
+              <option value="" disabled selected class="text-gray-600">Select your stage</option>
+              <option value="pre_seed">Pre-Seed / Idea</option>
+              <option value="seed">Seed / Startup</option>
+              <option value="early_scale">Early Scale</option>
+              <option value="expansion">Expansion / Enterprise</option>
+            </select>
+          </div>
+          <div id="web-field">
+            <label id="web-label" class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Company
+              Website <span id="web-req" class="text-red-400">*</span></label>
+            <input type="url" id="f-web" required placeholder="https://yourcompany.com"
+              class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none placeholder:text-gray-600 transition-colors">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Business Description
+              <span class="text-p-lime text-[10px] ml-1">IMPORTANT</span></label>
+            <textarea id="f-desc" rows="2" placeholder="What you sell, who you sell to, how you make money..."
+              class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none placeholder:text-gray-600 resize-none transition-colors"></textarea>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Your LinkedIn Profile
+              <span class="text-p-grey text-[10px]">OPTIONAL</span></label>
+            <input type="url" id="f-li" placeholder="https://linkedin.com/in/yourname"
+              class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none placeholder:text-gray-600 transition-colors">
+          </div>
+          <button type="submit" id="f-btn"
+            class="w-full bg-p-lime text-black font-bold py-4 rounded-xl hover:bg-p-lime2 transition-all shadow-[0_0_40px_rgba(205,255,0,.15)] flex items-center justify-center gap-2 mt-2">
+            <span>Start Diagnostic</span>
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+            </svg>
+          </button>
+        </form>
+      </div>
     </div>
+  </div>
 
-    <!-- ═══════════════════ INSTRUCTIONS OVERLAY ═══════════════════ -->
-    <div id="instrOverlay" class="instr-overlay" onclick="if(event.target===this)toggleInstructions()">
-        <div class="instr-panel">
-            <div class="sticky top-0 bg-[#0A0A0A] z-10 flex items-center justify-between px-6 pt-5 pb-3 border-b border-p-bdr">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 bg-p-lime/10 border border-p-lime/30 rounded-xl flex items-center justify-center text-p-lime shrink-0">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 16v.01M12 12a2 2 0 10-2-2"/></svg>
-                    </div>
-                    <span class="font-semibold text-sm">How to Use the GTM Clarity Agents</span>
-                </div>
-                <button onclick="toggleInstructions()" class="text-p-grey hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M18 6L6 18M6 6l12 12"/></svg>
-                </button>
-            </div>
-            <div class="p-6 space-y-1">
-                <h3>1. Open the Panoramica Website</h3>
-                <p>Go to: <a href="https://panoramica-website-1.vercel.app/" target="_blank">https://panoramica-website-1.vercel.app/</a></p>
-                <p>For the best experience, <strong>use a PC</strong> rather than a phone.</p>
-
-                <h3>2. Enter the Password</h3>
-                <p style="font-family:'JetBrains Mono',monospace;background:#141414;border:1px solid #1A1A1A;padding:8px 14px;border-radius:10px;color:#CDFF00;font-size:.8rem;margin:.5em 0;user-select:all">PanoramicaSolutionsLolloGiulio2026</p>
-
-                <h3>3. Start the Guided Session</h3>
-                <ul>
-                    <li>Look for the <strong>"Start Here"</strong> button on the homepage.</li>
-                    <li>Click it to launch the interactive GTM Clarity session.</li>
-                </ul>
-
-                <h3>4. How the Session Works</h3>
-                <p>The guided flow will:</p>
-                <ul>
-                    <li>Ask questions about your company, client, or GTM situation</li>
-                    <li>Help you clarify where your biggest opportunities and bottlenecks are</li>
-                    <li>Use your inputs to shape a personalized GTM strategy</li>
-                    <li>Produce a <strong>90&#8209;day roadmap</strong> at the end</li>
-                </ul>
-                <p>The full experience takes around <strong>20 minutes</strong>.</p>
-
-                <h3>5. How to Get the Best Results</h3>
-                <p>You can interact in two ways:</p>
-
-                <div style="display:flex;gap:10px;margin:.8em 0 .2em;flex-wrap:wrap">
-                    <div style="flex:1;min-width:200px;background:#0F0F0F;border:1px solid #1A1A1A;border-radius:12px;padding:14px">
-                        <p style="margin:0 0 4px"><strong>Option A &#8212; Use the Buttons</strong></p>
-                        <p style="margin:0;font-size:.8rem;color:#999">Quick and easy, but less detailed.</p>
-                    </div>
-                    <div style="flex:1;min-width:200px;background:#0F0F0F;border:1px solid rgba(205,255,0,.25);border-radius:12px;padding:14px">
-                        <p style="margin:0 0 4px"><strong>Option B &#8212; Add Context Manually</strong> <span class="tag">Recommended</span></p>
-                        <p style="margin:0;font-size:.8rem;color:#999">Typing your own context produces much higher&#8209;quality insights and a more accurate roadmap. This is the method that unlocks the real value of the agents.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ═══════════════════ HEADER ═══════════════════ -->
-    <header class="h-14 border-b border-p-bdr bg-p-bg/90 backdrop-blur-md flex items-center justify-between px-4 md:px-6 z-40 shrink-0">
+  <!-- ═══════════════════ INSTRUCTIONS OVERLAY ═══════════════════ -->
+  <div id="instrOverlay" class="instr-overlay" onclick="if(event.target===this)toggleInstructions()">
+    <div class="instr-panel">
+      <div
+        class="sticky top-0 bg-[#0A0A0A] z-10 flex items-center justify-between px-6 pt-5 pb-3 border-b border-p-bdr">
         <div class="flex items-center gap-3">
-            <div class="w-2 h-7 bg-p-lime rounded-full"></div>
-            <div>
-                <h1 class="font-bold text-sm tracking-wide">REVENUE ARCHITECT</h1>
-                <span id="st" class="text-[10px] text-p-grey font-mono">READY</span>
-            </div>
-            <!-- Phase tracker -->
-            <div id="ph" class="hidden md:flex items-center ml-4 pl-4 border-l border-p-bdr gap-0.5">
-                <div class="flex flex-col items-center"><div id="d0" class="dot off"></div><span class="phase-labels text-[7px] text-p-grey mt-0.5 font-mono">INIT</span></div>
-                <div id="l1" class="ln off mx-0.5"></div>
-                <div class="flex flex-col items-center"><div id="d1" class="dot off"></div><span class="phase-labels text-[7px] text-p-grey mt-0.5 font-mono">CO</span></div>
-                <div id="l2" class="ln off mx-0.5"></div>
-                <div class="flex flex-col items-center"><div id="d2" class="dot off"></div><span class="phase-labels text-[7px] text-p-grey mt-0.5 font-mono">GTM</span></div>
-                <div id="l3" class="ln off mx-0.5"></div>
-                <div class="flex flex-col items-center"><div id="d3" class="dot off"></div><span class="phase-labels text-[7px] text-p-grey mt-0.5 font-mono">SALES</span></div>
-                <div id="l4" class="ln off mx-0.5"></div>
-                <div class="flex flex-col items-center"><div id="d4" class="dot off"></div><span class="phase-labels text-[7px] text-p-grey mt-0.5 font-mono">DX</span></div>
-                <div id="l5" class="ln off mx-0.5"></div>
-                <div class="flex flex-col items-center"><div id="d5" class="dot off"></div><span class="phase-labels text-[7px] text-p-grey mt-0.5 font-mono">✓</span></div>
-                <div class="ml-3 pl-3 border-l border-p-bdr">
-                    <span id="conf" class="text-xs font-mono text-p-lime">0%</span>
-                </div>
-            </div>
+          <div
+            class="w-9 h-9 bg-p-lime/10 border border-p-lime/30 rounded-xl flex items-center justify-center text-p-lime shrink-0">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" />
+              <path stroke-linecap="round" d="M12 16v.01M12 12a2 2 0 10-2-2" />
+            </svg>
+          </div>
+          <span class="font-semibold text-sm">How to Use the GTM Clarity Agents</span>
         </div>
+        <button onclick="toggleInstructions()"
+          class="text-p-grey hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="p-6 space-y-1">
+        <h3>1. Open the Panoramica Website</h3>
+        <p>Go to: <a href="https://panoramica-website-1.vercel.app/"
+            target="_blank">https://panoramica-website-1.vercel.app/</a></p>
+        <p>For the best experience, <strong>use a PC</strong> rather than a phone.</p>
+
+        <h3>2. Enter the Password</h3>
+        <p
+          style="font-family:'JetBrains Mono',monospace;background:#141414;border:1px solid #1A1A1A;padding:8px 14px;border-radius:10px;color:#CDFF00;font-size:.8rem;margin:.5em 0;user-select:all">
+          PanoramicaSolutionsLolloGiulio2026</p>
+
+        <h3>3. Start the Guided Session</h3>
+        <ul>
+          <li>Look for the <strong>"Start Here"</strong> button on the homepage.</li>
+          <li>Click it to launch the interactive GTM Clarity session.</li>
+        </ul>
+
+        <h3>4. How the Session Works</h3>
+        <p>The guided flow will:</p>
+        <ul>
+          <li>Ask questions about your company, client, or GTM situation</li>
+          <li>Help you clarify where your biggest opportunities and bottlenecks are</li>
+          <li>Use your inputs to shape a personalized GTM strategy</li>
+          <li>Produce a <strong>90&#8209;day roadmap</strong> at the end</li>
+        </ul>
+        <p>The full experience takes around <strong>20 minutes</strong>.</p>
+
+        <h3>5. How to Get the Best Results</h3>
+        <p>You can interact in two ways:</p>
+
+        <div style="display:flex;gap:10px;margin:.8em 0 .2em;flex-wrap:wrap">
+          <div
+            style="flex:1;min-width:200px;background:#0F0F0F;border:1px solid #1A1A1A;border-radius:12px;padding:14px">
+            <p style="margin:0 0 4px"><strong>Option A &#8212; Use the Buttons</strong></p>
+            <p style="margin:0;font-size:.8rem;color:#999">Quick and easy, but less detailed.</p>
+          </div>
+          <div
+            style="flex:1;min-width:200px;background:#0F0F0F;border:1px solid rgba(205,255,0,.25);border-radius:12px;padding:14px">
+            <p style="margin:0 0 4px"><strong>Option B &#8212; Add Context Manually</strong> <span
+                class="tag">Recommended</span></p>
+            <p style="margin:0;font-size:.8rem;color:#999">Typing your own context produces much higher&#8209;quality
+              insights and a more accurate roadmap. This is the method that unlocks the real value of the agents.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ HEADER ═══════════════════ -->
+  <header
+    class="h-14 border-b border-p-bdr bg-p-bg/90 backdrop-blur-md flex items-center justify-between px-4 md:px-6 z-40 shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-2 h-7 bg-p-lime rounded-full"></div>
+      <div>
+        <h1 class="font-bold text-sm tracking-wide">REVENUE ARCHITECT</h1>
+        <span id="st" class="text-[10px] text-p-grey font-mono">READY</span>
+      </div>
+      <!-- Phase tracker -->
+      <div id="ph" class="hidden md:flex items-center ml-4 pl-4 border-l border-p-bdr gap-0.5">
+        <div class="flex flex-col items-center">
+          <div id="d0" class="dot off"></div><span
+            class="phase-labels text-[7px] text-p-grey mt-0.5 font-mono">INIT</span>
+        </div>
+        <div id="l1" class="ln off mx-0.5"></div>
+        <div class="flex flex-col items-center">
+          <div id="d1" class="dot off"></div><span
+            class="phase-labels text-[7px] text-p-grey mt-0.5 font-mono">CO</span>
+        </div>
+        <div id="l2" class="ln off mx-0.5"></div>
+        <div class="flex flex-col items-center">
+          <div id="d2" class="dot off"></div><span
+            class="phase-labels text-[7px] text-p-grey mt-0.5 font-mono">GTM</span>
+        </div>
+        <div id="l3" class="ln off mx-0.5"></div>
+        <div class="flex flex-col items-center">
+          <div id="d3" class="dot off"></div><span
+            class="phase-labels text-[7px] text-p-grey mt-0.5 font-mono">SALES</span>
+        </div>
+        <div id="l4" class="ln off mx-0.5"></div>
+        <div class="flex flex-col items-center">
+          <div id="d4" class="dot off"></div><span
+            class="phase-labels text-[7px] text-p-grey mt-0.5 font-mono">DX</span>
+        </div>
+        <div id="l5" class="ln off mx-0.5"></div>
+        <div class="flex flex-col items-center">
+          <div id="d5" class="dot off"></div><span class="phase-labels text-[7px] text-p-grey mt-0.5 font-mono">✓</span>
+        </div>
+        <div class="ml-3 pl-3 border-l border-p-bdr">
+          <span id="conf" class="text-xs font-mono text-p-lime">0%</span>
+        </div>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <span id="tn" class="text-[10px] font-mono text-p-grey"></span>
+      <button onclick="toggleGlossarySidebar()" class="instr-btn" title="Glossary">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><text x="5"
+            y="17" font-size="14" font-weight="700" fill="currentColor" stroke="none">?</text></svg>
+        <span class="hidden sm:inline">Glossary</span>
+      </button>
+      <button onclick="toggleInstructions()" class="instr-btn" title="How to use">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10" />
+          <path stroke-linecap="round" d="M12 16v.01M12 12a2 2 0 10-2-2" />
+        </svg>
+        <span class="hidden sm:inline">Guide</span>
+      </button>
+      <button onclick="confirmReset()"
+        class="text-xs text-p-grey hover:text-white border border-p-bdr px-3 py-1.5 rounded-lg hover:bg-white/5 transition">Reset</button>
+    </div>
+  </header>
+  <div class="w-full h-[2px] bg-p-panel">
+    <div id="bar" class="h-full bg-gradient-to-r from-p-lime to-p-lime2 transition-all duration-700" style="width:0%">
+    </div>
+  </div>
+  <div id="depth-nudge" class="depth-nudge depth-discovery"></div>
+
+  <!-- ═══════════════════ PRE-REPORT CONFIRMATION ═══════════════════ -->
+  <div id="confirmOverlay" class="confirm-overlay" onclick="if(event.target===this)closeConfirmation()">
+    <div class="confirm-panel">
+      <div
+        class="sticky top-0 bg-[#0A0A0A] z-10 flex items-center justify-between px-6 pt-5 pb-3 border-b border-p-bdr">
         <div class="flex items-center gap-3">
-            <span id="tn" class="text-[10px] font-mono text-p-grey"></span>
-            <button onclick="toggleGlossarySidebar()" class="instr-btn" title="Glossary">
-                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><text x="5" y="17" font-size="14" font-weight="700" fill="currentColor" stroke="none">?</text></svg>
-                <span class="hidden sm:inline">Glossary</span>
-            </button>
-            <button onclick="toggleInstructions()" class="instr-btn" title="How to use">
-                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 16v.01M12 12a2 2 0 10-2-2"/></svg>
-                <span class="hidden sm:inline">Guide</span>
-            </button>
-            <button onclick="confirmReset()" class="text-xs text-p-grey hover:text-white border border-p-bdr px-3 py-1.5 rounded-lg hover:bg-white/5 transition">Reset</button>
+          <div
+            class="w-9 h-9 bg-p-lime/10 border border-p-lime/30 rounded-xl flex items-center justify-center text-p-lime shrink-0">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <span class="font-semibold text-sm">Confirm Your Data Before Report</span>
         </div>
-    </header>
-    <div class="w-full h-[2px] bg-p-panel"><div id="bar" class="h-full bg-gradient-to-r from-p-lime to-p-lime2 transition-all duration-700" style="width:0%"></div></div>
-    <div id="depth-nudge" class="depth-nudge depth-discovery"></div>
-
-    <!-- ═══════════════════ PRE-REPORT CONFIRMATION ═══════════════════ -->
-    <div id="confirmOverlay" class="confirm-overlay" onclick="if(event.target===this)closeConfirmation()">
-        <div class="confirm-panel">
-            <div class="sticky top-0 bg-[#0A0A0A] z-10 flex items-center justify-between px-6 pt-5 pb-3 border-b border-p-bdr">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 bg-p-lime/10 border border-p-lime/30 rounded-xl flex items-center justify-center text-p-lime shrink-0">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    </div>
-                    <span class="font-semibold text-sm">Confirm Your Data Before Report</span>
-                </div>
-                <button onclick="closeConfirmation()" class="text-p-grey hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M18 6L6 18M6 6l12 12"/></svg>
-                </button>
-            </div>
-            <div class="p-6 space-y-3">
-                <p class="text-sm text-p-grey">Review and correct these key data points. Specific values improve benchmark accuracy.</p>
-                <div id="confirmFields" class="space-y-3"></div>
-            </div>
-            <div class="sticky bottom-0 bg-[#0A0A0A] border-t border-p-bdr px-6 py-4 flex gap-3">
-                <button onclick="closeConfirmation()" class="flex-1 px-4 py-3 text-sm text-p-grey border border-p-bdr rounded-xl hover:bg-white/5 transition">Cancel</button>
-                <button onclick="confirmAndGenerate()" class="flex-1 px-4 py-3 text-sm font-bold bg-p-lime text-black rounded-xl hover:bg-p-lime2 transition shadow-[0_0_20px_rgba(205,255,0,.12)]">Generate Report</button>
-            </div>
-        </div>
+        <button onclick="closeConfirmation()"
+          class="text-p-grey hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="p-6 space-y-3">
+        <p class="text-sm text-p-grey">Review and correct these key data points. Specific values improve benchmark
+          accuracy.</p>
+        <div id="confirmFields" class="space-y-3"></div>
+      </div>
+      <div class="sticky bottom-0 bg-[#0A0A0A] border-t border-p-bdr px-6 py-4 flex gap-3">
+        <button onclick="closeConfirmation()"
+          class="flex-1 px-4 py-3 text-sm text-p-grey border border-p-bdr rounded-xl hover:bg-white/5 transition">Cancel</button>
+        <button onclick="confirmAndGenerate()"
+          class="flex-1 px-4 py-3 text-sm font-bold bg-p-lime text-black rounded-xl hover:bg-p-lime2 transition shadow-[0_0_20px_rgba(205,255,0,.12)]">Generate
+          Report</button>
+      </div>
     </div>
+  </div>
 
-    <!-- ═══════════════════ GLOSSARY SIDEBAR ═══════════════════ -->
-    <div id="glossBackdrop" class="gloss-backdrop" onclick="toggleGlossarySidebar()"></div>
-    <div id="glossSidebar" class="gloss-sidebar">
-        <div class="gs-head">
-            <div class="flex items-center gap-2">
-                <span class="text-p-lime font-bold text-sm">?</span>
-                <span class="font-semibold text-sm">Glossary</span>
-            </div>
-            <button onclick="toggleGlossarySidebar()" class="text-p-grey hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M18 6L6 18M6 6l12 12"/></svg>
-            </button>
-        </div>
-        <div class="gs-search">
-            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
-            <input id="glossSearch" type="text" placeholder="Search terms..." oninput="filterGlossary(this.value)">
-        </div>
-        <div id="glossList" class="gs-list"></div>
+  <!-- ═══════════════════ GLOSSARY SIDEBAR ═══════════════════ -->
+  <div id="glossBackdrop" class="gloss-backdrop" onclick="toggleGlossarySidebar()"></div>
+  <div id="glossSidebar" class="gloss-sidebar">
+    <div class="gs-head">
+      <div class="flex items-center gap-2">
+        <span class="text-p-lime font-bold text-sm">?</span>
+        <span class="font-semibold text-sm">Glossary</span>
+      </div>
+      <button onclick="toggleGlossarySidebar()"
+        class="text-p-grey hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </button>
     </div>
-
-    <!-- ═══════════════════ ASSUMPTIONS PANEL ═══════════════════ -->
-    <div id="assumeBar" class="assume-bar" style="display:none">
-        <div id="assumeToggle" class="assume-toggle">
-            <div class="at-left">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"/></svg>
-                <span>What I know so far</span>
-                <span id="assumeCount" class="at-count">0</span>
-            </div>
-            <svg class="at-chev" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
-        </div>
-        <div id="assumeBody" class="assume-body">
-            <div id="assumeList" class="ab-inner"></div>
-        </div>
+    <div class="gs-search">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8" />
+        <path stroke-linecap="round" d="M21 21l-4.35-4.35" />
+      </svg>
+      <input id="glossSearch" type="text" placeholder="Search terms..." oninput="filterGlossary(this.value)">
     </div>
+    <div id="glossList" class="gs-list"></div>
+  </div>
 
-    <!-- ═══════════════════ CHAT ═══════════════════ -->
-    <main id="chat" class="flex-1 overflow-y-auto scr scroll-smooth">
-        <div class="max-w-3xl mx-auto py-6 px-4 md:px-0 min-h-full flex flex-col justify-end">
-            <div id="msgs" class="space-y-5"></div>
-            <div class="h-32"></div>
-        </div>
-    </main>
-
-    <!-- ═══════════════════ CONTROLS ═══════════════════ -->
-    <div class="shrink-0 bg-gradient-to-t from-p-bg via-p-bg/95 to-transparent pt-10 pb-5 px-4 z-30">
-        <div class="max-w-3xl mx-auto space-y-3">
-            <div id="opts" class="flex flex-col gap-2"></div>
-            <!-- File attachments preview -->
-            <div id="attachments-preview" class="hidden space-y-2"></div>
-            <div id="inp" class="hidden opacity-0 transition-opacity duration-300">
-                <div class="bg-p-card border border-p-bdr rounded-xl flex items-center p-2 focus-within:border-p-lime/50 transition-all">
-                    <input type="file" id="file-input" class="hidden" multiple accept="image/*,.pdf,.doc,.docx,.txt,.csv,.xlsx,.xls" onchange="handleFileSelect(event)">
-                    <button onclick="$('file-input').click()" class="p-2.5 text-p-grey hover:text-p-lime transition-all shrink-0" title="Allega documento o immagine">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13"/></svg>
-                    </button>
-                    <input type="text" id="ti" class="flex-1 bg-transparent border-none text-white text-sm px-3 focus:ring-0 focus:outline-none placeholder:text-gray-600 h-10" placeholder="Type your response...">
-                    <button onclick="sendText()" id="send-btn" class="p-2.5 bg-p-lime text-black rounded-lg hover:bg-p-lime2 transition-all shrink-0">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>
-                    </button>
-                </div>
-            </div>
-            <p class="text-center text-[10px] text-gray-700 font-mono tracking-widest pt-1">PANORAMICA v12.0</p>
-        </div>
+  <!-- ═══════════════════ ASSUMPTIONS PANEL ═══════════════════ -->
+  <div id="assumeBar" class="assume-bar" style="display:none">
+    <div id="assumeToggle" class="assume-toggle">
+      <div class="at-left">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+        </svg>
+        <span>What I know so far</span>
+        <span id="assumeCount" class="at-count">0</span>
+      </div>
+      <svg class="at-chev" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+        viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+      </svg>
     </div>
+    <div id="assumeBody" class="assume-body">
+      <div id="assumeList" class="ab-inner"></div>
+    </div>
+  </div>
 
-    <script>
+  <!-- ═══════════════════ CHAT ═══════════════════ -->
+  <main id="chat" class="flex-1 overflow-y-auto scr scroll-smooth">
+    <div class="max-w-3xl mx-auto py-6 px-4 md:px-0 min-h-full flex flex-col justify-end">
+      <div id="msgs" class="space-y-5"></div>
+      <div class="h-32"></div>
+    </div>
+  </main>
+
+  <!-- ═══════════════════ CONTROLS ═══════════════════ -->
+  <div class="shrink-0 bg-gradient-to-t from-p-bg via-p-bg/95 to-transparent pt-10 pb-5 px-4 z-30">
+    <div class="max-w-3xl mx-auto space-y-3">
+      <div id="opts" class="flex flex-col gap-2"></div>
+      <!-- File attachments preview -->
+      <div id="attachments-preview" class="hidden space-y-2"></div>
+      <div id="inp" class="hidden opacity-0 transition-opacity duration-300">
+        <div
+          class="bg-p-card border border-p-bdr rounded-xl flex items-center p-2 focus-within:border-p-lime/50 transition-all">
+          <input type="file" id="file-input" class="hidden" multiple
+            accept="image/*,.pdf,.doc,.docx,.txt,.csv,.xlsx,.xls" onchange="handleFileSelect(event)">
+          <button onclick="$('file-input').click()" class="p-2.5 text-p-grey hover:text-p-lime transition-all shrink-0"
+            title="Allega documento o immagine">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
+            </svg>
+          </button>
+          <input type="text" id="ti"
+            class="flex-1 bg-transparent border-none text-white text-sm px-3 focus:ring-0 focus:outline-none placeholder:text-gray-600 h-10"
+            placeholder="Type your response...">
+          <button onclick="sendText()" id="send-btn"
+            class="p-2.5 bg-p-lime text-black rounded-lg hover:bg-p-lime2 transition-all shrink-0">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <p class="text-center text-[10px] text-gray-700 font-mono tracking-widest pt-1">PANORAMICA v12.0</p>
+    </div>
+  </div>
+
+  <script>
     // ═══════════════════════════════════════════════════════════════
     // CONFIGURATION
     // ═══════════════════════════════════════════════════════════════
@@ -636,26 +1518,26 @@
     const chat = $('chat'), msgs = $('msgs'), opts = $('opts'), inp = $('inp'), ti = $('ti');
 
     function scroll() {
-        requestAnimationFrame(() => {
-            chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
-        });
+      requestAnimationFrame(() => {
+        chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
+      });
     }
 
     function confirmReset() {
-        if (H.length > 2) {
-            if (confirm('Reset the diagnostic? All progress will be lost.')) location.reload();
-        } else {
-            location.reload();
-        }
+      if (H.length > 2) {
+        if (confirm('Reset the diagnostic? All progress will be lost.')) location.reload();
+      } else {
+        location.reload();
+      }
     }
 
     // ═══════════════════════════════════════════════════════════════
     // MESSAGE RENDERING
     // ═══════════════════════════════════════════════════════════════
     function addU(text) {
-        const d = document.createElement('div');
-        d.className = 'flex gap-3 flex-row-reverse mi';
-        d.innerHTML = `
+      const d = document.createElement('div');
+      d.className = 'flex gap-3 flex-row-reverse mi';
+      d.innerHTML = `
             <div class="w-8 h-8 rounded-xl bg-p-lime flex items-center justify-center shrink-0">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="text-black">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
@@ -664,57 +1546,57 @@
             <div class="max-w-[80%]">
                 <div class="text-sm bg-p-panel border border-p-bdr p-3.5 rounded-2xl rounded-tr-md">${text.replace(/</g, '&lt;')}</div>
             </div>`;
-        msgs.appendChild(d);
-        scroll();
+      msgs.appendChild(d);
+      scroll();
     }
 
     function addA(text) {
-        if (!text) return;
-        const d = document.createElement('div');
-        d.className = 'flex gap-3 mi';
-        let html;
-        try {
-            marked.setOptions({ breaks: true, gfm: true });
-            html = marked.parse(text);
-        } catch {
-            html = text;
-        }
-        // Highlight glossary terms in the rendered HTML
-        const glossHtml = highlightGlossaryTerms(html);
-        d.innerHTML = `
+      if (!text) return;
+      const d = document.createElement('div');
+      d.className = 'flex gap-3 mi';
+      let html;
+      try {
+        marked.setOptions({ breaks: true, gfm: true });
+        html = marked.parse(text);
+      } catch {
+        html = text;
+      }
+      // Highlight glossary terms in the rendered HTML
+      const glossHtml = highlightGlossaryTerms(html);
+      d.innerHTML = `
             <div class="w-8 h-8 rounded-xl bg-p-panel border border-p-bdr flex items-center justify-center shrink-0">
                 <span class="text-p-lime font-mono text-[10px] font-bold">RA</span>
             </div>
             <div class="flex-1 max-w-[85%]">
                 <div class="prose bg-p-card border border-p-bdr p-4 rounded-2xl rounded-tl-md">${glossHtml}</div>
             </div>`;
-        msgs.appendChild(d);
-        scroll();
+      msgs.appendChild(d);
+      scroll();
     }
 
     function typing(on) {
-        // Always remove existing typing indicator first
-        const existing = $('typ');
-        if (existing) existing.remove();
+      // Always remove existing typing indicator first
+      const existing = $('typ');
+      if (existing) existing.remove();
 
-        if (on) {
-            const d = document.createElement('div');
-            d.id = 'typ';
-            d.className = 'flex gap-3 mi';
-            d.innerHTML = `
+      if (on) {
+        const d = document.createElement('div');
+        d.id = 'typ';
+        d.className = 'flex gap-3 mi';
+        d.innerHTML = `
                 <div class="w-8 h-8 rounded-xl bg-p-panel border border-p-bdr flex items-center justify-center shrink-0">
                     <span class="text-p-lime font-mono text-[10px] font-bold">RA</span>
                 </div>
                 <div class="flex gap-1.5 items-center bg-p-card border border-p-bdr px-5 py-3 rounded-2xl">
                     <div class="td"></div><div class="td"></div><div class="td"></div>
                 </div>`;
-            msgs.appendChild(d);
-            scroll();
-        }
+        msgs.appendChild(d);
+        scroll();
+      }
     }
 
     function loading(text) {
-        opts.innerHTML = `
+      opts.innerHTML = `
             <div class="w-full bg-p-card border border-p-bdr p-4 rounded-xl flex items-center gap-3">
                 <div class="w-4 h-4 border-2 border-p-lime border-t-transparent rounded-full animate-spin"></div>
                 <span class="text-xs font-mono text-p-lime uppercase tracking-widest">${text}</span>
@@ -725,132 +1607,131 @@
     // PHASE TRACKER
     // ═══════════════════════════════════════════════════════════════
     function updPhase(phase, conf, depthPct) {
-        $('ph').classList.remove('hidden');
-        const map = {
-            welcome: 0, company: 1, gtm: 2, sales: 3,
-            diagnosis: 4, pre_finish: 5, finish: 5,
-            add_context: 4 // stays at diagnosis level
-        };
-        const idx = map[phase] ?? 0;
+      $('ph').classList.remove('hidden');
+      const map = {
+        welcome: 0, company: 1, gtm: 2, sales: 3,
+        diagnosis: 4, pre_finish: 5, finish: 5,
+        add_context: 4 // stays at diagnosis level
+      };
+      const idx = map[phase] ?? 0;
 
-        for (let i = 0; i < 6; i++) {
-            const d = $(`d${i}`);
-            d.classList.remove('on', 'now', 'off');
-            d.classList.add(i < idx ? 'on' : i === idx ? 'now' : 'off');
-        }
-        for (let i = 1; i <= 5; i++) {
-            const l = $(`l${i}`);
-            l.classList.remove('on', 'now', 'off');
-            l.classList.add(i < idx ? 'on' : i === idx ? 'now' : 'off');
-        }
+      for (let i = 0; i < 6; i++) {
+        const d = $(`d${i}`);
+        d.classList.remove('on', 'now', 'off');
+        d.classList.add(i < idx ? 'on' : i === idx ? 'now' : 'off');
+      }
+      for (let i = 1; i <= 5; i++) {
+        const l = $(`l${i}`);
+        l.classList.remove('on', 'now', 'off');
+        l.classList.add(i < idx ? 'on' : i === idx ? 'now' : 'off');
+      }
 
-        // Use diagnostic depth score (weighted) instead of simple question count
-        const pct = typeof depthPct === 'number' ? depthPct : (conf?.total || Math.round((idx / 5) * 100));
-        $('bar').style.width = pct + '%';
-        $('conf').textContent = pct + '%';
-        $('tn').textContent = 'T' + (S?.turnCount || 0);
+      // Use diagnostic depth score (weighted) instead of simple question count
+      const pct = typeof depthPct === 'number' ? depthPct : (conf?.total || Math.round((idx / 5) * 100));
+      $('bar').style.width = pct + '%';
+      $('conf').textContent = pct + '%';
+      $('tn').textContent = 'T' + (S?.turnCount || 0);
 
-        // Depth-based nudge / badge UI
-        const nudgeEl = $('depth-nudge');
-        if (nudgeEl) {
-            if (pct >= 100) {
-                nudgeEl.className = 'depth-nudge depth-premium';
-                nudgeEl.innerHTML = '⭐ Full diagnostic complete — maximum benchmark accuracy';
-            } else if (pct >= 80) {
-                nudgeEl.className = 'depth-nudge depth-ready';
-                nudgeEl.innerHTML = '✅ Diagnostic complete enough for a strong report. Continue for deeper insights, or generate now.';
-            } else if (pct >= 60) {
-                nudgeEl.className = 'depth-nudge depth-almost';
-                nudgeEl.innerHTML = '📊 Almost ready for your report — a few more details will improve accuracy.';
-            } else {
-                nudgeEl.className = 'depth-nudge depth-discovery';
-                nudgeEl.innerHTML = '';
-            }
+      // Depth-based nudge / badge UI
+      const nudgeEl = $('depth-nudge');
+      if (nudgeEl) {
+        if (pct >= 100) {
+          nudgeEl.className = 'depth-nudge depth-premium';
+          nudgeEl.innerHTML = '⭐ Full diagnostic complete — maximum benchmark accuracy';
+        } else if (pct >= 80) {
+          nudgeEl.className = 'depth-nudge depth-ready';
+          nudgeEl.innerHTML = '✅ Diagnostic complete enough for a strong report. Continue for deeper insights, or generate now.';
+        } else if (pct >= 60) {
+          nudgeEl.className = 'depth-nudge depth-almost';
+          nudgeEl.innerHTML = '📊 Almost ready for your report — a few more details will improve accuracy.';
+        } else {
+          nudgeEl.className = 'depth-nudge depth-discovery';
+          nudgeEl.innerHTML = '';
         }
+      }
     }
 
     // ═══════════════════════════════════════════════════════════════
     // GO BACK FUNCTIONALITY
     // ═══════════════════════════════════════════════════════════════
     function saveStateBeforePick() {
-        if (!currentDisplay) return;
-        stateStack.push({
-            H: JSON.parse(JSON.stringify(H)),
-            S: S ? JSON.parse(JSON.stringify(S)) : null,
-            msgCount: msgs.children.length,
-            display: JSON.parse(JSON.stringify(currentDisplay))
-        });
+      if (!currentDisplay) return;
+      stateStack.push({
+        H: JSON.parse(JSON.stringify(H)),
+        S: S ? JSON.parse(JSON.stringify(S)) : null,
+        msgCount: msgs.children.length,
+        display: JSON.parse(JSON.stringify(currentDisplay))
+      });
     }
 
     function goBack() {
-        if (stateStack.length === 0 || busy) return;
-        const prev = stateStack.pop();
+      if (stateStack.length === 0 || busy) return;
+      const prev = stateStack.pop();
 
-        // Restore conversation state
-        H = prev.H;
-        S = prev.S;
+      // Restore conversation state
+      H = prev.H;
+      S = prev.S;
 
-        // Remove messages added since snapshot
-        while (msgs.children.length > prev.msgCount) {
-            msgs.removeChild(msgs.lastChild);
-        }
+      // Remove messages added since snapshot
+      while (msgs.children.length > prev.msgCount) {
+        msgs.removeChild(msgs.lastChild);
+      }
 
-        // Restore display
-        currentDisplay = prev.display;
-        updPhase(prev.display.current_phase, prev.display.confidence_state, prev.display.diagnostic_depth);
-        showOpts(prev.display.options, prev.display.allowText);
-        $('st').textContent = 'READY';
-        scroll();
+      // Restore display
+      currentDisplay = prev.display;
+      updPhase(prev.display.current_phase, prev.display.confidence_state, prev.display.diagnostic_depth);
+      showOpts(prev.display.options, prev.display.allowText, prev.display.option_groups);
+      $('st').textContent = 'READY';
+      scroll();
     }
 
     // ═══════════════════════════════════════════════════════════════
     // ANSWER SELECTION CACHE
     // ═══════════════════════════════════════════════════════════════
     function cacheAnswer(stepId, key, label) {
-        answerCache[stepId] = { key, label, ts: Date.now() };
-        answerHistory.push({ stepId, key, label, ts: Date.now() });
-        // Auto-cleanup: keep only last 50 history entries
-        if (answerHistory.length > 50) answerHistory = answerHistory.slice(-50);
+      answerCache[stepId] = { key, label, ts: Date.now() };
+      answerHistory.push({ stepId, key, label, ts: Date.now() });
+      // Auto-cleanup: keep only last 50 history entries
+      if (answerHistory.length > 50) answerHistory = answerHistory.slice(-50);
     }
 
     function getCachedAnswer(stepId) {
-        return answerCache[stepId] || null;
+      return answerCache[stepId] || null;
     }
 
     // ═══════════════════════════════════════════════════════════════
     // OPTIONS DISPLAY
     // ═══════════════════════════════════════════════════════════════
-    function showOpts(list, allowText) {
-        opts.innerHTML = '';
-        inp.classList.add('hidden', 'opacity-0');
+    function showOpts(list, allowText, optionGroups) {
+      opts.innerHTML = '';
+      inp.classList.add('hidden', 'opacity-0');
 
-        // Check for previously cached answer at this step
-        const cached = getCachedAnswer(H.length);
+      // Check for previously cached answer at this step
+      const cached = getCachedAnswer(H.length);
 
-        // Render go-back button if history exists
-        if (stateStack.length > 0) {
-            const backBtn = document.createElement('button');
-            backBtn.className = 'back-btn mi';
-            backBtn.onclick = goBack;
-            backBtn.innerHTML = `
+      // Render go-back button if history exists
+      if (stateStack.length > 0) {
+        const backBtn = document.createElement('button');
+        backBtn.className = 'back-btn mi';
+        backBtn.onclick = goBack;
+        backBtn.innerHTML = `
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
                 <span>Previous question</span>`;
-            opts.appendChild(backBtn);
-        }
+        opts.appendChild(backBtn);
+      }
 
-        const items = list || [];
-        // Separate primary (report/restart) buttons from regular options
-        const primary = items.filter(o => o.key === 'generate_report' || o.key === 'update_and_generate' || o.key === 'restart' || o.key === 'download_again' || o.key === 'open_dashboard');
-        const regular = items.filter(o => !primary.includes(o));
+      const items = list || [];
+      // Separate primary (report/restart) buttons from regular options
+      const primary = items.filter(o => o.key === 'generate_report' || o.key === 'update_and_generate' || o.key === 'restart' || o.key === 'download_again' || o.key === 'open_dashboard');
 
-        // Render primary buttons directly (always visible)
-        primary.forEach((o, i) => {
-            const b = document.createElement('button');
-            b.style.animationDelay = `${i * 0.06}s`;
-            b.onclick = () => pick(o.key, o.label);
-            if (o.key === 'generate_report' || o.key === 'update_and_generate') {
-                b.className = 'mi w-full bg-p-lime text-black border-2 border-p-lime p-4 rounded-xl font-bold flex items-center justify-between hover:bg-p-lime2 hover:scale-[1.01] transition-all shadow-[0_0_30px_rgba(205,255,0,.15)]';
-                b.innerHTML = `
+      // Render primary buttons directly (always visible)
+      primary.forEach((o, i) => {
+        const b = document.createElement('button');
+        b.style.animationDelay = `${i * 0.06}s`;
+        b.onclick = () => pick(o.key, o.label);
+        if (o.key === 'generate_report' || o.key === 'update_and_generate') {
+          b.className = 'mi w-full bg-p-lime text-black border-2 border-p-lime p-4 rounded-xl font-bold flex items-center justify-between hover:bg-p-lime2 hover:scale-[1.01] transition-all shadow-[0_0_30px_rgba(205,255,0,.15)]';
+          b.innerHTML = `
                     <div class="flex items-center gap-3">
                         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
@@ -858,260 +1739,305 @@
                         <span>${o.label}</span>
                     </div>
                     <span class="text-sm opacity-70">PDF</span>`;
-            } else {
-                b.className = 'mi w-full text-left bg-p-card border border-p-bdr hover:border-p-lime/50 p-3.5 rounded-xl transition-all group flex items-center justify-between';
-                b.innerHTML = `
+        } else {
+          b.className = 'mi w-full text-left bg-p-card border border-p-bdr hover:border-p-lime/50 p-3.5 rounded-xl transition-all group flex items-center justify-between';
+          b.innerHTML = `
                     <span class="text-sm font-medium">${o.label}</span>
                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" class="text-p-grey group-hover:text-p-lime group-hover:translate-x-1 transition-all shrink-0 ml-2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
                     </svg>`;
-            }
-            opts.appendChild(b);
+        }
+        opts.appendChild(b);
+      });
+
+      // ── MULTI-GROUP RENDERING (when LLM asks 2 questions) ──
+      if (Array.isArray(optionGroups) && optionGroups.length >= 2) {
+        optionGroups.forEach((group, gi) => {
+          const groupWrapper = document.createElement('div');
+          groupWrapper.className = 'mi';
+          groupWrapper.style.animationDelay = `${gi * 0.1}s`;
+
+          // Group label
+          const label = document.createElement('div');
+          label.className = 'flex items-center gap-2 mb-2 mt-1';
+          label.innerHTML = `
+                    <div class="w-5 h-5 rounded-full bg-p-lime/15 border border-p-lime/30 flex items-center justify-center shrink-0">
+                        <span class="text-[9px] font-bold text-p-lime">${gi + 1}</span>
+                    </div>
+                    <span class="text-xs font-medium text-p-greyL uppercase tracking-wider">${(group.question_ref || 'Question ' + (gi + 1)).replace(/</g, '&lt;')}</span>`;
+          groupWrapper.appendChild(label);
+
+          // Group buttons
+          const groupBtns = document.createElement('div');
+          groupBtns.className = 'flex flex-col gap-2 mb-3';
+
+          const groupOptions = group.options || [];
+          groupOptions.forEach((o, i) => {
+            const b = document.createElement('button');
+            b.style.animationDelay = `${(gi * 0.1) + (i * 0.06)}s`;
+            b.onclick = () => pick(o.key, o.label);
+            const isSelected = cached && cached.key === o.key;
+            b.className = 'mi w-full text-left bg-p-card border border-p-bdr hover:border-p-lime/50 p-3.5 rounded-xl transition-all group flex items-center justify-between' + (isSelected ? ' opt-selected' : '');
+            b.innerHTML = `
+                        ${isSelected ? '<svg width="16" height="16" fill="none" stroke="#CDFF00" stroke-width="2" viewBox="0 0 24 24" class="shrink-0 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' : ''}
+                        <span class="text-sm font-medium flex-1">${o.label}</span>
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" class="text-p-grey group-hover:text-p-lime group-hover:translate-x-1 transition-all shrink-0 ml-2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                        </svg>`;
+            groupBtns.appendChild(b);
+          });
+
+          groupWrapper.appendChild(groupBtns);
+          opts.appendChild(groupWrapper);
         });
+      } else {
+        // ── SINGLE-GROUP / FLAT RENDERING (existing accordion behavior) ──
+        const regular = items.filter(o => !primary.includes(o));
 
-        // If there are regular options, wrap them in a collapsible accordion
         if (regular.length > 0) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'mi';
+          const wrapper = document.createElement('div');
+          wrapper.className = 'mi';
 
-            // Toggle header
-            const toggle = document.createElement('div');
-            toggle.className = 'opts-toggle';
-            toggle.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <svg width="16" height="16" fill="none" stroke="#CDFF00" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
-                    <span class="text-sm font-medium text-white">${regular.length} option${regular.length > 1 ? 's' : ''} available</span>
-                </div>
-                <svg class="chevron" width="18" height="18" fill="none" stroke="#888" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
-            `;
+          // Toggle header
+          const toggle = document.createElement('div');
+          toggle.className = 'opts-toggle';
+          toggle.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <svg width="16" height="16" fill="none" stroke="#CDFF00" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+                        <span class="text-sm font-medium text-white">${regular.length} option${regular.length > 1 ? 's' : ''} available</span>
+                    </div>
+                    <svg class="chevron" width="18" height="18" fill="none" stroke="#888" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+                `;
 
-            // Body with buttons
-            const body = document.createElement('div');
-            body.className = 'opts-body';
-            const inner = document.createElement('div');
-            inner.className = 'flex flex-col gap-2 pt-2';
+          // Body with buttons
+          const body = document.createElement('div');
+          body.className = 'opts-body';
+          const inner = document.createElement('div');
+          inner.className = 'flex flex-col gap-2 pt-2';
 
-            regular.forEach((o, i) => {
-                const b = document.createElement('button');
-                b.style.animationDelay = `${i * 0.06}s`;
-                b.onclick = () => pick(o.key, o.label);
-                const isSelected = cached && cached.key === o.key;
-                b.className = 'mi w-full text-left bg-p-card border border-p-bdr hover:border-p-lime/50 p-3.5 rounded-xl transition-all group flex items-center justify-between' + (isSelected ? ' opt-selected' : '');
-                b.innerHTML = `
-                    ${isSelected ? '<svg width="16" height="16" fill="none" stroke="#CDFF00" stroke-width="2" viewBox="0 0 24 24" class="shrink-0 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' : ''}
-                    <span class="text-sm font-medium flex-1">${o.label}</span>
-                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" class="text-p-grey group-hover:text-p-lime group-hover:translate-x-1 transition-all shrink-0 ml-2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
-                    </svg>`;
-                inner.appendChild(b);
-            });
+          regular.forEach((o, i) => {
+            const b = document.createElement('button');
+            b.style.animationDelay = `${i * 0.06}s`;
+            b.onclick = () => pick(o.key, o.label);
+            const isSelected = cached && cached.key === o.key;
+            b.className = 'mi w-full text-left bg-p-card border border-p-bdr hover:border-p-lime/50 p-3.5 rounded-xl transition-all group flex items-center justify-between' + (isSelected ? ' opt-selected' : '');
+            b.innerHTML = `
+                        ${isSelected ? '<svg width="16" height="16" fill="none" stroke="#CDFF00" stroke-width="2" viewBox="0 0 24 24" class="shrink-0 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' : ''}
+                        <span class="text-sm font-medium flex-1">${o.label}</span>
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" class="text-p-grey group-hover:text-p-lime group-hover:translate-x-1 transition-all shrink-0 ml-2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                        </svg>`;
+            inner.appendChild(b);
+          });
 
-            body.appendChild(inner);
-            wrapper.appendChild(toggle);
-            wrapper.appendChild(body);
-            opts.appendChild(wrapper);
+          body.appendChild(inner);
+          wrapper.appendChild(toggle);
+          wrapper.appendChild(body);
+          opts.appendChild(wrapper);
 
-            // Toggle click handler
-            toggle.addEventListener('click', () => {
-                const isOpen = body.classList.contains('open');
-                if (isOpen) {
-                    body.style.maxHeight = '0px';
-                    body.classList.remove('open');
-                    toggle.classList.remove('open');
-                } else {
-                    body.classList.add('open');
-                    toggle.classList.add('open');
-                    body.style.maxHeight = body.scrollHeight + 'px';
-                    // Re-measure after animation frames settle
-                    setTimeout(() => { if (body.classList.contains('open')) body.style.maxHeight = body.scrollHeight + 'px'; }, 350);
-                    scroll();
-                }
-            });
-
-            // Auto-open accordion if a cached answer exists in regular options
-            if (cached && regular.some(o => o.key === cached.key)) {
-                requestAnimationFrame(() => {
-                    body.classList.add('open');
-                    toggle.classList.add('open');
-                    body.style.maxHeight = body.scrollHeight + 'px';
-                });
+          // Toggle click handler
+          toggle.addEventListener('click', () => {
+            const isOpen = body.classList.contains('open');
+            if (isOpen) {
+              body.style.maxHeight = '0px';
+              body.classList.remove('open');
+              toggle.classList.remove('open');
+            } else {
+              body.classList.add('open');
+              toggle.classList.add('open');
+              body.style.maxHeight = body.scrollHeight + 'px';
+              // Re-measure after animation frames settle
+              setTimeout(() => { if (body.classList.contains('open')) body.style.maxHeight = body.scrollHeight + 'px'; }, 350);
+              scroll();
             }
-        }
+          });
 
-        // Show text input if allowed
-        if (allowText !== false) {
-            inp.classList.remove('hidden');
-            setTimeout(() => {
-                inp.classList.remove('opacity-0');
-                // Don't auto-focus on mobile (avoids keyboard popping up)
-                if (window.innerWidth > 768) ti.focus();
-            }, 150);
+          // Auto-open accordion if a cached answer exists in regular options
+          if (cached && regular.some(o => o.key === cached.key)) {
+            requestAnimationFrame(() => {
+              body.classList.add('open');
+              toggle.classList.add('open');
+              body.style.maxHeight = body.scrollHeight + 'px';
+            });
+          }
         }
-        scroll();
+      }
+
+      // Show text input if allowed
+      if (allowText !== false) {
+        inp.classList.remove('hidden');
+        setTimeout(() => {
+          inp.classList.remove('opacity-0');
+          // Don't auto-focus on mobile (avoids keyboard popping up)
+          if (window.innerWidth > 768) ti.focus();
+        }, 150);
+      }
+      scroll();
     }
 
     // ═══════════════════════════════════════════════════════════════
     // API CALL WITH RETRY
     // ═══════════════════════════════════════════════════════════════
     async function api(body) {
-        for (let attempt = 0; attempt < 3; attempt++) {
-            try {
-                const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 60000);
-                const r = await fetch(API, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body),
-                    signal: controller.signal
-                });
-                clearTimeout(timeout);
-                if (!r.ok) throw new Error(`HTTP ${r.status}`);
-                return await r.json();
-            } catch (e) {
-                if (attempt === 2) throw e;
-                await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-            }
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 60000);
+          const r = await fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+            signal: controller.signal
+          });
+          clearTimeout(timeout);
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return await r.json();
+        } catch (e) {
+          if (attempt === 2) throw e;
+          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
         }
+      }
     }
 
     // ═══════════════════════════════════════════════════════════════
     // PICK OPTION / SEND RESPONSE
     // ═══════════════════════════════════════════════════════════════
     async function pick(key, label) {
-        if (busy) return;
+      if (busy) return;
 
-        // Handle special actions
-        if (key === 'generate_report' || key === 'update_and_generate') { showConfirmation(); return; }
-        if (key === 'restart') { location.reload(); return; }
-        if (key === 'download_again') { genPDF(); return; }
-        if (key === 'open_dashboard') { openDashboard(); return; }
+      // Handle special actions
+      if (key === 'generate_report' || key === 'update_and_generate') { showConfirmation(); return; }
+      if (key === 'restart') { location.reload(); return; }
+      if (key === 'download_again') { genPDF(); return; }
+      if (key === 'open_dashboard') { openDashboard(); return; }
 
-        // Cache the selected answer for this conversation step
-        cacheAnswer(H.length, key, label);
+      // Cache the selected answer for this conversation step
+      cacheAnswer(H.length, key, label);
 
-        const stackLenBefore = stateStack.length;
-        saveStateBeforePick();
-        busy = true;
-        addU(label || key);
-        typing(true);
-        loading('ANALYZING...');
-        $('st').textContent = 'THINKING';
+      const stackLenBefore = stateStack.length;
+      saveStateBeforePick();
+      busy = true;
+      addU(label || key);
+      typing(true);
+      loading('ANALYZING...');
+      $('st').textContent = 'THINKING';
 
-        try {
-            const data = await api({
-                choice: key,
-                history: H,
-                sessionData: S,
-                contextData: diag
-            });
+      try {
+        const data = await api({
+          choice: key,
+          history: H,
+          sessionData: S,
+          contextData: diag
+        });
 
-            S = data.session_data;
-            H.push(
-                { role: 'user', content: key },
-                { role: 'assistant', content: JSON.stringify(data) }
-            );
+        S = data.session_data;
+        H.push(
+          { role: 'user', content: key },
+          { role: 'assistant', content: JSON.stringify(data) }
+        );
 
-            typing(false);
-            updPhase(data.current_phase, data.confidence_state, data.diagnostic_depth);
-            addA(data.message);
-            currentDisplay = {
-                message: data.message,
-                options: data.options,
-                allowText: data.allow_text !== false && data.mode !== 'buttons',
-                current_phase: data.current_phase,
-                confidence_state: data.confidence_state,
-                diagnostic_depth: data.diagnostic_depth
-            };
-            showOpts(data.options, data.allow_text !== false && data.mode !== 'buttons');
-            updateAssumptionsPanel(data.assumptions);
-            $('st').textContent = 'READY';
+        typing(false);
+        updPhase(data.current_phase, data.confidence_state, data.diagnostic_depth);
+        addA(data.message);
+        currentDisplay = {
+          message: data.message,
+          options: data.options,
+          option_groups: data.option_groups || null,
+          allowText: data.allow_text !== false && data.mode !== 'buttons',
+          current_phase: data.current_phase,
+          confidence_state: data.confidence_state,
+          diagnostic_depth: data.diagnostic_depth
+        };
+        showOpts(data.options, data.allow_text !== false && data.mode !== 'buttons', data.option_groups);
+        updateAssumptionsPanel(data.assumptions);
+        $('st').textContent = 'READY';
 
-        } catch (e) {
-            if (stateStack.length > stackLenBefore) stateStack.pop();
-            console.error('[pick error]', e);
-            typing(false);
-            $('st').textContent = 'ERROR';
-            opts.innerHTML = `
+      } catch (e) {
+        if (stateStack.length > stackLenBefore) stateStack.pop();
+        console.error('[pick error]', e);
+        typing(false);
+        $('st').textContent = 'ERROR';
+        opts.innerHTML = `
                 <div class="text-red-400 p-4 text-center bg-red-900/10 border border-red-900/50 rounded-xl space-y-2">
                     <p class="text-sm">Connection error: ${e.message}</p>
                     <button onclick="pick('${key.replace(/'/g, "\\'")}','${(label || key).replace(/'/g, "\\'")}')" class="bg-red-900/30 px-4 py-2 rounded-lg text-sm hover:bg-red-900/50 transition">Retry</button>
                 </div>`;
-        } finally {
-            busy = false;
-        }
+      } finally {
+        busy = false;
+      }
     }
 
     function sendText() {
-        const t = ti.value.trim();
-        if (!t && attachedFiles.length === 0) return;
-        if (busy) return;
-        ti.value = '';
-        
-        // Send with attachments if any
-        if (attachedFiles.length > 0) {
-            pickWithFiles(t || 'Documento allegato', t || 'Documento allegato');
-        } else {
-            pick(t, t);
-        }
+      const t = ti.value.trim();
+      if (!t && attachedFiles.length === 0) return;
+      if (busy) return;
+      ti.value = '';
+
+      // Send with attachments if any
+      if (attachedFiles.length > 0) {
+        pickWithFiles(t || 'Documento allegato', t || 'Documento allegato');
+      } else {
+        pick(t, t);
+      }
     }
 
     // ═══════════════════════════════════════════════════════════════
     // FILE ATTACHMENT HANDLING
     // ═══════════════════════════════════════════════════════════════
     async function handleFileSelect(e) {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) return;
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
 
-        // Size limit: 10MB per file
-        const maxSize = 10 * 1024 * 1024;
+      // Size limit: 10MB per file
+      const maxSize = 10 * 1024 * 1024;
+      for (const file of files) {
+        if (file.size > maxSize) {
+          alert(`File "${file.name}" è troppo grande. Limite: 10MB`);
+          e.target.value = '';
+          return;
+        }
+      }
+
+      // Convert files to base64
+      try {
         for (const file of files) {
-            if (file.size > maxSize) {
-                alert(`File "${file.name}" è troppo grande. Limite: 10MB`);
-                e.target.value = '';
-                return;
-            }
+          const base64 = await fileToBase64(file);
+          attachedFiles.push({
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            data: base64
+          });
         }
-
-        // Convert files to base64
-        try {
-            for (const file of files) {
-                const base64 = await fileToBase64(file);
-                attachedFiles.push({
-                    name: file.name,
-                    type: file.type,
-                    size: file.size,
-                    data: base64
-                });
-            }
-            updateAttachmentsPreview();
-            e.target.value = ''; // Reset input
-        } catch (err) {
-            console.error('File read error:', err);
-            alert('Errore durante la lettura dei file');
-        }
+        updateAttachmentsPreview();
+        e.target.value = ''; // Reset input
+      } catch (err) {
+        console.error('File read error:', err);
+        alert('Errore durante la lettura dei file');
+      }
     }
 
     function fileToBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result.split(',')[1]);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
     }
 
     function updateAttachmentsPreview() {
-        const preview = $('attachments-preview');
-        if (attachedFiles.length === 0) {
-            preview.classList.add('hidden');
-            return;
-        }
+      const preview = $('attachments-preview');
+      if (attachedFiles.length === 0) {
+        preview.classList.add('hidden');
+        return;
+      }
 
-        preview.classList.remove('hidden');
-        preview.innerHTML = attachedFiles.map((f, i) => {
-            const icon = f.type.startsWith('image/') ? '🖼️' : '📄';
-            const sizeKB = Math.round(f.size / 1024);
-            return `
+      preview.classList.remove('hidden');
+      preview.innerHTML = attachedFiles.map((f, i) => {
+        const icon = f.type.startsWith('image/') ? '🖼️' : '📄';
+        const sizeKB = Math.round(f.size / 1024);
+        return `
                 <div class="bg-p-card border border-p-bdr rounded-lg p-2.5 flex items-center justify-between gap-2">
                     <div class="flex items-center gap-2 text-sm">
                         <span class="text-lg">${icon}</span>
@@ -1127,83 +2053,84 @@
                     </button>
                 </div>
             `;
-        }).join('');
+      }).join('');
     }
 
     function removeAttachment(index) {
-        attachedFiles.splice(index, 1);
-        updateAttachmentsPreview();
+      attachedFiles.splice(index, 1);
+      updateAttachmentsPreview();
     }
 
     async function pickWithFiles(key, label) {
-        if (busy) return;
-        const stackLenBefore = stateStack.length;
-        saveStateBeforePick();
-        busy = true;
+      if (busy) return;
+      const stackLenBefore = stateStack.length;
+      saveStateBeforePick();
+      busy = true;
 
-        // Build user message with file info
-        const fileInfo = attachedFiles.map(f => `[${f.name}]`).join(' ');
-        const displayLabel = label + (attachedFiles.length > 0 ? ` ${fileInfo}` : '');
-        
-        addU(displayLabel);
-        typing(true);
-        loading('ANALYZING...');
-        $('st').textContent = 'THINKING';
+      // Build user message with file info
+      const fileInfo = attachedFiles.map(f => `[${f.name}]`).join(' ');
+      const displayLabel = label + (attachedFiles.length > 0 ? ` ${fileInfo}` : '');
 
-        try {
-            const data = await api({
-                choice: key,
-                history: H,
-                sessionData: S,
-                contextData: diag,
-                attachments: attachedFiles // Send files
-            });
+      addU(displayLabel);
+      typing(true);
+      loading('ANALYZING...');
+      $('st').textContent = 'THINKING';
 
-            // Clear attachments after sending
-            attachedFiles = [];
-            updateAttachmentsPreview();
+      try {
+        const data = await api({
+          choice: key,
+          history: H,
+          sessionData: S,
+          contextData: diag,
+          attachments: attachedFiles // Send files
+        });
 
-            S = data.session_data;
-            H.push(
-                { role: 'user', content: key },
-                { role: 'assistant', content: JSON.stringify(data) }
-            );
+        // Clear attachments after sending
+        attachedFiles = [];
+        updateAttachmentsPreview();
 
-            typing(false);
-            updPhase(data.current_phase, data.confidence_state, data.diagnostic_depth);
-            addA(data.message);
-            currentDisplay = {
-                message: data.message,
-                options: data.options,
-                allowText: data.allow_text !== false && data.mode !== 'buttons',
-                current_phase: data.current_phase,
-                confidence_state: data.confidence_state,
-                diagnostic_depth: data.diagnostic_depth
-            };
-            showOpts(data.options, data.allow_text !== false && data.mode !== 'buttons');
-            updateAssumptionsPanel(data.assumptions);
-            $('st').textContent = 'READY';
+        S = data.session_data;
+        H.push(
+          { role: 'user', content: key },
+          { role: 'assistant', content: JSON.stringify(data) }
+        );
 
-        } catch (e) {
-            if (stateStack.length > stackLenBefore) stateStack.pop();
-            console.error('[pickWithFiles error]', e);
-            typing(false);
-            $('st').textContent = 'ERROR';
-            opts.innerHTML = `
+        typing(false);
+        updPhase(data.current_phase, data.confidence_state, data.diagnostic_depth);
+        addA(data.message);
+        currentDisplay = {
+          message: data.message,
+          options: data.options,
+          option_groups: data.option_groups || null,
+          allowText: data.allow_text !== false && data.mode !== 'buttons',
+          current_phase: data.current_phase,
+          confidence_state: data.confidence_state,
+          diagnostic_depth: data.diagnostic_depth
+        };
+        showOpts(data.options, data.allow_text !== false && data.mode !== 'buttons', data.option_groups);
+        updateAssumptionsPanel(data.assumptions);
+        $('st').textContent = 'READY';
+
+      } catch (e) {
+        if (stateStack.length > stackLenBefore) stateStack.pop();
+        console.error('[pickWithFiles error]', e);
+        typing(false);
+        $('st').textContent = 'ERROR';
+        opts.innerHTML = `
                 <div class="text-red-400 p-4 text-center bg-red-900/10 border border-red-900/50 rounded-xl space-y-2">
                     <p class="text-sm">Connection error: ${e.message}</p>
                     <button onclick="pickWithFiles('${key.replace(/'/g, "\\'")}\'${(label || key).replace(/'/g, "\\'")}')" class="bg-red-900/30 px-4 py-2 rounded-lg text-sm hover:bg-red-900/50 transition">Retry</button>
                 </div>`;
-        } finally {
-            busy = false;
-        }
+      } finally {
+        busy = false;
+      }
     }
 
     ti.addEventListener('keypress', e => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendText();
-        }
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendText();
+      }
     });
 
     // ═══════════════════════════════════════════════════════════════
@@ -1213,201 +2140,206 @@
     // STAGE-CONDITIONAL WEBSITE FIELD
     // ═══════════════════════════════════════════════════════════════
     const websiteConfig = {
-        'pre_seed':    { required: false, label: 'Website or landing page (optional)', placeholder: 'Skip if you don\'t have one yet' },
-        'seed':        { required: false, label: 'Company website (if available)', placeholder: 'https://... or skip' },
-        'early_scale': { required: true,  label: 'Company website', placeholder: 'https://yourcompany.com' },
-        'expansion':   { required: true,  label: 'Company website', placeholder: 'https://yourcompany.com' },
+      'pre_seed': { required: false, label: 'Website or landing page (optional)', placeholder: 'Skip if you don\'t have one yet' },
+      'seed': { required: false, label: 'Company website (if available)', placeholder: 'https://... or skip' },
+      'early_scale': { required: true, label: 'Company website', placeholder: 'https://yourcompany.com' },
+      'expansion': { required: true, label: 'Company website', placeholder: 'https://yourcompany.com' },
     };
 
     function updateWebsiteField() {
-        const stage = $('f-stage').value;
-        const cfg = websiteConfig[stage];
-        if (!cfg) return;
-        const inp = $('f-web');
-        const lbl = $('web-label');
-        const req = $('web-req');
-        inp.required = cfg.required;
-        inp.placeholder = cfg.placeholder;
-        lbl.innerHTML = cfg.label + (cfg.required
-            ? ' <span id="web-req" class="text-red-400">*</span>'
-            : ' <span id="web-req" class="text-p-grey text-[10px]">OPTIONAL</span>');
+      const stage = $('f-stage').value;
+      const cfg = websiteConfig[stage];
+      if (!cfg) return;
+      const inp = $('f-web');
+      const lbl = $('web-label');
+      const req = $('web-req');
+      inp.required = cfg.required;
+      inp.placeholder = cfg.placeholder;
+      lbl.innerHTML = cfg.label + (cfg.required
+        ? ' <span id="web-req" class="text-red-400">*</span>'
+        : ' <span id="web-req" class="text-p-grey text-[10px]">OPTIONAL</span>');
     }
 
     async function init(e) {
-        e.preventDefault();
+      e.preventDefault();
 
-        const s = $('f-stage').value;
-        if (!s) { alert('Please select your company stage'); return; }
+      const s = $('f-stage').value;
+      if (!s) { alert('Please select your company stage'); return; }
 
-        const w = $('f-web').value.trim();
-        const d = $('f-desc').value.trim();
-        const l = $('f-li').value.trim();
-        const cfg = websiteConfig[s];
+      const w = $('f-web').value.trim();
+      const d = $('f-desc').value.trim();
+      const l = $('f-li').value.trim();
+      const cfg = websiteConfig[s];
 
-        // Validate website URL only if required or provided
-        if (w) {
-            try { new URL(w); } catch { alert('Please enter a valid website URL (include https://)'); return; }
-        } else if (cfg?.required) {
-            alert('Please enter your company website'); return;
-        }
+      // Validate website URL only if required or provided
+      if (w) {
+        try { new URL(w); } catch { alert('Please enter a valid website URL (include https://)'); return; }
+      } else if (cfg?.required) {
+        alert('Please enter your company website'); return;
+      }
 
-        // Validate LinkedIn URL if provided
-        if (l) {
-            try { new URL(l); } catch { alert('Please enter a valid LinkedIn URL (include https://)'); return; }
-        }
+      // Validate LinkedIn URL if provided
+      if (l) {
+        try { new URL(l); } catch { alert('Please enter a valid LinkedIn URL (include https://)'); return; }
+      }
 
-        // Disable button
-        $('f-btn').disabled = true;
-        const hasWebsite = !!w;
-        $('f-btn').innerHTML = hasWebsite
-            ? '<div class="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div> <span>Scanning website...</span>'
-            : '<div class="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div> <span>Preparing diagnostic...</span>';
+      // Disable button
+      $('f-btn').disabled = true;
+      const hasWebsite = !!w;
+      $('f-btn').innerHTML = hasWebsite
+        ? '<div class="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div> <span>Scanning website...</span>'
+        : '<div class="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div> <span>Preparing diagnostic...</span>';
 
-        // Hide modal
-        $('modal').style.opacity = '0';
-        setTimeout(() => $('modal').classList.add('hidden'), 400);
+      // Hide modal
+      $('modal').style.opacity = '0';
+      setTimeout(() => $('modal').classList.add('hidden'), 400);
 
-        // Show initial state
-        addA(hasWebsite
-            ? "**Initializing Revenue Architect** — Scanning your website and preparing the diagnostic..."
-            : "**Initializing Revenue Architect** — Preparing your diagnostic...");
-        loading(hasWebsite ? 'SCANNING WEBSITE...' : 'PREPARING...');
-        $('st').textContent = 'SCANNING';
+      // Show initial state
+      addA(hasWebsite
+        ? "**Initializing Revenue Architect** — Scanning your website and preparing the diagnostic..."
+        : "**Initializing Revenue Architect** — Preparing your diagnostic...");
+      loading(hasWebsite ? 'SCANNING WEBSITE...' : 'PREPARING...');
+      $('st').textContent = 'SCANNING';
 
-        diag = { website: w, description: d, linkedin: l, stage: s };
+      diag = { website: w, description: d, linkedin: l, stage: s };
 
-        try {
-            const data = await api({
-                choice: 'SNAPSHOT_INIT',
-                history: [],
-                contextData: diag,
-                sessionData: null
-            });
+      try {
+        const data = await api({
+          choice: 'SNAPSHOT_INIT',
+          history: [],
+          contextData: diag,
+          sessionData: null
+        });
 
-            S = data.session_data;
-            H.push({ role: 'assistant', content: JSON.stringify(data) });
+        S = data.session_data;
+        H.push({ role: 'assistant', content: JSON.stringify(data) });
 
-            updPhase(data.current_phase, data.confidence_state, data.diagnostic_depth);
-            addA(data.message);
-            currentDisplay = {
-                message: data.message,
-                options: data.options,
-                allowText: data.allow_text !== false && data.mode !== 'buttons',
-                current_phase: data.current_phase,
-                confidence_state: data.confidence_state,
-                diagnostic_depth: data.diagnostic_depth
-            };
-            showOpts(data.options, data.allow_text !== false && data.mode !== 'buttons');
-            updateAssumptionsPanel(data.assumptions);
-            $('st').textContent = 'READY';
+        updPhase(data.current_phase, data.confidence_state, data.diagnostic_depth);
+        addA(data.message);
+        currentDisplay = {
+          message: data.message,
+          options: data.options,
+          option_groups: data.option_groups || null,
+          allowText: data.allow_text !== false && data.mode !== 'buttons',
+          current_phase: data.current_phase,
+          confidence_state: data.confidence_state,
+          diagnostic_depth: data.diagnostic_depth
+        };
+        showOpts(data.options, data.allow_text !== false && data.mode !== 'buttons', data.option_groups);
+        updateAssumptionsPanel(data.assumptions);
+        $('st').textContent = 'READY';
 
-        } catch (err) {
-            console.error('[init error]', err);
-            $('st').textContent = 'FAILED';
-            opts.innerHTML = `
+      } catch (err) {
+        console.error('[init error]', err);
+        $('st').textContent = 'FAILED';
+        opts.innerHTML = `
                 <button onclick="location.reload()" class="w-full text-red-400 border border-red-900/50 bg-red-900/10 p-4 rounded-xl hover:bg-red-900/20 transition">
                     Failed to connect — click to retry
                 </button>`;
-        }
+      }
     }
 
     // ═══════════════════════════════════════════════════════════════
     // PRE-REPORT CONFIRMATION SCREEN
     // ═══════════════════════════════════════════════════════════════
     function buildConfirmationScreen(profile) {
-        const criticalParams = [
-            { label: 'Company', value: profile.companyName, field: 'companyName', editable: true },
-            { label: 'Industry', value: profile.industry, field: 'industry', editable: true },
-            { label: 'Stage', value: profile.companyStage || profile.stage, field: 'stage', editable: true },
-            { label: 'Team Size', value: profile.teamSize, field: 'teamSize', editable: true,
-              requiresExact: /\d+[-\u2013]\d+/.test(profile.teamSize || '') },
-            { label: 'Monthly Revenue', value: profile.revenue, field: 'revenue', editable: true,
-              requiresExact: /range|approx|about|~/i.test((profile.revenue || '')) },
-            { label: 'Main Bottleneck', value: profile.mainBottleneck, field: 'mainBottleneck', editable: true },
-            { label: 'Primary Goal', value: profile.userPriority, field: 'userPriority', editable: true },
-        ];
-        const needsClarification = criticalParams.filter(p => p.requiresExact);
-        return { params: criticalParams, needsClarification };
+      const criticalParams = [
+        { label: 'Company', value: profile.companyName, field: 'companyName', editable: true },
+        { label: 'Industry', value: profile.industry, field: 'industry', editable: true },
+        { label: 'Stage', value: profile.companyStage || profile.stage, field: 'stage', editable: true },
+        {
+          label: 'Team Size', value: profile.teamSize, field: 'teamSize', editable: true,
+          requiresExact: /\d+[-\u2013]\d+/.test(profile.teamSize || '')
+        },
+        {
+          label: 'Monthly Revenue', value: profile.revenue, field: 'revenue', editable: true,
+          requiresExact: /range|approx|about|~/i.test((profile.revenue || ''))
+        },
+        { label: 'Main Bottleneck', value: profile.mainBottleneck, field: 'mainBottleneck', editable: true },
+        { label: 'Primary Goal', value: profile.userPriority, field: 'userPriority', editable: true },
+      ];
+      const needsClarification = criticalParams.filter(p => p.requiresExact);
+      return { params: criticalParams, needsClarification };
     }
 
     function showConfirmation() {
-        if (!S?.profile) { genPDF(); return; }
-        const { params } = buildConfirmationScreen(S.profile);
-        const container = $('confirmFields');
-        container.innerHTML = '';
-        for (const p of params) {
-            const needsExact = p.requiresExact;
-            const row = document.createElement('div');
-            row.className = 'confirm-row' + (needsExact ? ' needs-exact' : '');
-            const escapedVal = (p.value || '').replace(/"/g, '&quot;');
-            let hint = '';
-            if (needsExact) {
-                hint = `<div class="cr-hint"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg> You mentioned \u201C${p.value || ''}\u201D. What\u2019s the specific number? (improves benchmark accuracy)</div>`;
-            }
-            row.innerHTML = `<div class="cr-label">${p.label}</div><input class="cr-input" data-field="${p.field}" value="${escapedVal}" placeholder="Not provided \u2014 add value...">${hint}`;
-            container.appendChild(row);
+      if (!S?.profile) { genPDF(); return; }
+      const { params } = buildConfirmationScreen(S.profile);
+      const container = $('confirmFields');
+      container.innerHTML = '';
+      for (const p of params) {
+        const needsExact = p.requiresExact;
+        const row = document.createElement('div');
+        row.className = 'confirm-row' + (needsExact ? ' needs-exact' : '');
+        const escapedVal = (p.value || '').replace(/"/g, '&quot;');
+        let hint = '';
+        if (needsExact) {
+          hint = `<div class="cr-hint"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg> You mentioned \u201C${p.value || ''}\u201D. What\u2019s the specific number? (improves benchmark accuracy)</div>`;
         }
-        $('confirmOverlay').classList.add('open');
+        row.innerHTML = `<div class="cr-label">${p.label}</div><input class="cr-input" data-field="${p.field}" value="${escapedVal}" placeholder="Not provided \u2014 add value...">${hint}`;
+        container.appendChild(row);
+      }
+      $('confirmOverlay').classList.add('open');
     }
 
     function closeConfirmation() {
-        $('confirmOverlay').classList.remove('open');
+      $('confirmOverlay').classList.remove('open');
     }
 
     function confirmAndGenerate() {
-        const inputs = $('confirmFields').querySelectorAll('.cr-input');
-        inputs.forEach(inp => {
-            const field = inp.dataset.field;
-            const val = inp.value.trim();
-            if (field && val && S?.profile) {
-                S.profile[field] = val;
-            }
-        });
-        closeConfirmation();
-        genPDF();
+      const inputs = $('confirmFields').querySelectorAll('.cr-input');
+      inputs.forEach(inp => {
+        const field = inp.dataset.field;
+        const val = inp.value.trim();
+        if (field && val && S?.profile) {
+          S.profile[field] = val;
+        }
+      });
+      closeConfirmation();
+      genPDF();
     }
 
     // ═══════════════════════════════════════════════════════════════
     // PDF GENERATION — window.print() approach (reliable)
     // ═══════════════════════════════════════════════════════════════
     async function genPDF() {
-        if (busy) return;
-        busy = true;
-        loading('GENERATING STRATEGIC GROWTH PLAN...');
-        $('st').textContent = 'GENERATING';
+      if (busy) return;
+      busy = true;
+      loading('GENERATING STRATEGIC GROWTH PLAN...');
+      $('st').textContent = 'GENERATING';
 
-        try {
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 120000);
-            const r = await fetch(RAPI, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    history: H,
-                    sessionData: S,
-                    diagnosticData: diag
-                }),
-                signal: controller.signal
-            });
-            clearTimeout(timeout);
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 120000);
+        const r = await fetch(RAPI, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            history: H,
+            sessionData: S,
+            diagnosticData: diag
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
 
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
-            const data = await r.json();
-            if (data.error) throw new Error(data.error);
-            if (!data.report) throw new Error('Empty report received');
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const data = await r.json();
+        if (data.error) throw new Error(data.error);
+        if (!data.report) throw new Error('Empty report received');
 
-            lastMD = data.report;
-            const chartData = data.chart_data || null;
-            lastDashboardData = data.dashboard_data || null;
-            loading('FORMATTING REPORT...');
+        lastMD = data.report;
+        const chartData = data.chart_data || null;
+        lastDashboardData = data.dashboard_data || null;
+        loading('FORMATTING REPORT...');
 
-            // Parse markdown to HTML
-            marked.setOptions({ breaks: true, gfm: true, tables: true });
-            const html = marked.parse(data.report);
-            const company = S?.profile?.companyName || 'Company';
-            const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        // Parse markdown to HTML
+        marked.setOptions({ breaks: true, gfm: true, tables: true });
+        const html = marked.parse(data.report);
+        const company = S?.profile?.companyName || 'Company';
+        const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-            const fullHTML = `<!DOCTYPE html>
+        const fullHTML = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Strategic Growth Plan — ${company}</title>
 <style>
 @media print {
@@ -1660,38 +2592,38 @@ ${chartData ? `<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/cha
 <\/script>` : ''}
 </body></html>`;
 
-            // Open in new window
-            const w2 = window.open('', '_blank', 'width=900,height=1100');
-            if (w2) {
-                w2.document.write(fullHTML);
-                w2.document.close();
-            } else {
-                // Popup blocked — download as HTML file
-                const blob = new Blob([fullHTML], { type: 'text/html' });
-                const u = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = u;
-                a.download = `Growth_Plan_${company.replace(/\s+/g, '_')}.html`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(u);
-            }
+        // Open in new window
+        const w2 = window.open('', '_blank', 'width=900,height=1100');
+        if (w2) {
+          w2.document.write(fullHTML);
+          w2.document.close();
+        } else {
+          // Popup blocked — download as HTML file
+          const blob = new Blob([fullHTML], { type: 'text/html' });
+          const u = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = u;
+          a.download = `Growth_Plan_${company.replace(/\s+/g, '_')}.html`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(u);
+        }
 
-            addA("✅ **Your Strategic Growth Plan is ready!**\n\nUse **Ctrl+P** (or Cmd+P on Mac) in the report window to save as PDF.\n\nThe report includes: strategic narrative (Current State → Hard Truth → Unlock → Risk of Inaction), stage-calibrated benchmarks (KBCM, Statista, Pavilion), diagnostic findings with golden thread traceability, 90-day sequential roadmap with second-order effects, trade-off analysis, metrics dashboard, and stage-appropriate tool recommendations." + (lastDashboardData ? "\n\n📊 **Interactive Dashboard available** — track your metrics against the 90-day targets in real time." : ""));
-            const postOpts = [
-                { key: 'download_again', label: '📥 Open Report Again' },
-                { key: 'restart', label: 'Start New Diagnostic' }
-            ];
-            if (lastDashboardData) postOpts.splice(1, 0, { key: 'open_dashboard', label: '📊 Open 90-Day Dashboard' });
-            showOpts(postOpts, false);
-            updPhase('finish', { total: 100 }, 100);
-            $('st').textContent = 'COMPLETE';
+        addA("✅ **Your Strategic Growth Plan is ready!**\n\nUse **Ctrl+P** (or Cmd+P on Mac) in the report window to save as PDF.\n\nThe report includes: strategic narrative (Current State → Hard Truth → Unlock → Risk of Inaction), stage-calibrated benchmarks (KBCM, Statista, Pavilion), diagnostic findings with golden thread traceability, 90-day sequential roadmap with second-order effects, trade-off analysis, metrics dashboard, and stage-appropriate tool recommendations." + (lastDashboardData ? "\n\n📊 **Interactive Dashboard available** — track your metrics against the 90-day targets in real time." : ""));
+        const postOpts = [
+          { key: 'download_again', label: '📥 Open Report Again' },
+          { key: 'restart', label: 'Start New Diagnostic' }
+        ];
+        if (lastDashboardData) postOpts.splice(1, 0, { key: 'open_dashboard', label: '📊 Open 90-Day Dashboard' });
+        showOpts(postOpts, false);
+        updPhase('finish', { total: 100 }, 100);
+        $('st').textContent = 'COMPLETE';
 
-        } catch (e) {
-            console.error('[genPDF error]', e);
-            $('st').textContent = 'FAILED';
-            opts.innerHTML = `
+      } catch (e) {
+        console.error('[genPDF error]', e);
+        $('st').textContent = 'FAILED';
+        opts.innerHTML = `
                 <div class="text-red-400 p-4 text-center bg-red-900/10 border border-red-900/50 rounded-xl space-y-3">
                     <p class="text-sm">Report generation failed: ${e.message}</p>
                     <div class="flex gap-3 justify-center flex-wrap">
@@ -1699,22 +2631,22 @@ ${chartData ? `<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/cha
                         ${lastMD ? '<button onclick="dlMD()" class="bg-p-bdr px-4 py-2 rounded-lg text-sm text-white hover:bg-p-bdr2 transition">Download as Markdown</button>' : ''}
                     </div>
                 </div>`;
-        } finally {
-            busy = false;
-        }
+      } finally {
+        busy = false;
+      }
     }
 
     // ═══════════════════════════════════════════════════════════════
     // INTERACTIVE 90-DAY DASHBOARD
     // ═══════════════════════════════════════════════════════════════
     function openDashboard() {
-        if (!lastDashboardData) return;
-        const dd = lastDashboardData;
-        const safeDD = JSON.stringify(dd).replace(/<\//g, '<\\/');
-        const company = dd.companyName || 'Company';
-        const storageKey = 'pano_dash_' + company.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+      if (!lastDashboardData) return;
+      const dd = lastDashboardData;
+      const safeDD = JSON.stringify(dd).replace(/<\//g, '<\\/');
+      const company = dd.companyName || 'Company';
+      const storageKey = 'pano_dash_' + company.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
 
-        const dashHTML = `<!DOCTYPE html>
+      const dashHTML = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>90-Day Dashboard — ${company}</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"><\/script>
@@ -1832,7 +2764,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:#e5e
 <div class="dash-header">
   <div>
     <h1>90-Day Sprint Dashboard <span>${dd.stageLabel} Stage</span></h1>
-    <div class="dash-meta">${company} &mdash; Generated ${new Date(dd.generatedAt).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})} &mdash; Revenue Architect by Panoramica</div>
+    <div class="dash-meta">${company} &mdash; Generated ${new Date(dd.generatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} &mdash; Revenue Architect by Panoramica</div>
   </div>
   <div class="dash-actions">
     <button onclick="exportJSON()" title="Download dashboard data">Export JSON</button>
@@ -2283,50 +3215,51 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:#e5e
 <\/script>
 </body></html>`;
 
-        const w2 = window.open('', '_blank');
-        if (w2) {
-            w2.document.open();
-            w2.document.write(dashHTML);
-            w2.document.close();
-        } else {
-            const blob = new Blob([dashHTML], { type: 'text/html' });
-            const u = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = u;
-            a.download = `Dashboard_${company.replace(/\s+/g, '_')}.html`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(u);
-        }
-    }
-
-    function dlMD() {
-        if (!lastMD) return;
-        const blob = new Blob([lastMD], { type: 'text/markdown' });
+      const w2 = window.open('', '_blank');
+      if (w2) {
+        w2.document.open();
+        w2.document.write(dashHTML);
+        w2.document.close();
+      } else {
+        const blob = new Blob([dashHTML], { type: 'text/html' });
         const u = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = u;
-        a.download = `Growth_Plan_${S?.profile?.companyName?.replace(/\s+/g, '_') || 'Company'}.md`;
+        a.download = `Dashboard_${company.replace(/\s+/g, '_')}.html`;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(u);
+      }
+    }
+
+    function dlMD() {
+      if (!lastMD) return;
+      const blob = new Blob([lastMD], { type: 'text/markdown' });
+      const u = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = u;
+      a.download = `Growth_Plan_${S?.profile?.companyName?.replace(/\s+/g, '_') || 'Company'}.md`;
+      a.click();
+      URL.revokeObjectURL(u);
     }
 
     // ═══════════════════════════════════════════════════════════════
     // INSTRUCTIONS PANEL TOGGLE
     // ═══════════════════════════════════════════════════════════════
     function toggleInstructions() {
-        const ov = $('instrOverlay');
-        ov.classList.toggle('open');
+      const ov = $('instrOverlay');
+      ov.classList.toggle('open');
     }
     document.addEventListener('keydown', e => {
-        if (e.key === 'Escape' && $('instrOverlay').classList.contains('open')) toggleInstructions();
+      if (e.key === 'Escape' && $('instrOverlay').classList.contains('open')) toggleInstructions();
     });
 
     // Warn before leaving
     window.addEventListener('beforeunload', e => {
-        if (H.length > 2) { e.preventDefault(); e.returnValue = ''; }
+      if (H.length > 2) { e.preventDefault(); e.returnValue = ''; }
     });
-    </script>
+  </script>
 </body>
+
 </html>

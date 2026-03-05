@@ -617,9 +617,9 @@ ${phase.depthTopics.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}
 
 CHECKLIST STATUS:
 ${phase.checklist.map(k => {
-  const v = p[k]; const has = v && v.trim();
-  return has ? `  ✅ ${k}: ${v} (DONE — don't re-ask)` : `  ❓ ${k}: NOT YET COLLECTED`;
-}).join('\n')}
+        const v = p[k]; const has = v && v.trim();
+        return has ? `  ✅ ${k}: ${v} (DONE — don't re-ask)` : `  ❓ ${k}: NOT YET COLLECTED`;
+      }).join('\n')}
 
 STRATEGY — SITUATION-FIRST DISCOVERY:
 - OPEN WITH THE CURRENT SITUATION: before you ask for numbers, ask what their world looks like right now. "Paint me a picture of a typical week — what's working, what feels stuck?" This naturally surfaces the numbers AND the context around them.
@@ -657,9 +657,9 @@ ${phase.depthTopics.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}
 
 CHECKLIST:
 ${phase.checklist.map(k => {
-  const v = p[k]; const has = v && v.trim();
-  return has ? `  ✅ ${k}: ${v} (DONE)` : `  ❓ ${k}: NEEDED`;
-}).join('\n')}
+        const v = p[k]; const has = v && v.trim();
+        return has ? `  ✅ ${k}: ${v} (DONE)` : `  ❓ ${k}: NEEDED`;
+      }).join('\n')}
 
 STRATEGY — PEOPLE & SYSTEMS LENS ON GTM:
 - Start this phase with a brief transition: summarize company DNA, then pivot to GTM
@@ -691,9 +691,9 @@ ${phase.depthTopics.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}
 
 CHECKLIST:
 ${phase.checklist.map(k => {
-  const v = p[k]; const has = v && v.trim();
-  return has ? `  ✅ ${k}: ${v} (DONE)` : `  ❓ ${k}: NEEDED`;
-}).join('\n')}
+        const v = p[k]; const has = v && v.trim();
+        return has ? `  ✅ ${k}: ${v} (DONE)` : `  ❓ ${k}: NEEDED`;
+      }).join('\n')}
 
 STRATEGY — ENABLEMENT, REALITY & OPERATING MODEL:
 - Ask for a WALKTHROUGH: "Take me through a recent deal from first touch to signature — who was involved at each step?"
@@ -820,7 +820,7 @@ export default async function handler(req, res) {
         }
       });
       attachmentContext += 'NOTE: Acknowledge the files and ask the user to briefly explain what they contain and why they shared them.\n';
-      
+
       // Store attachment metadata in session for reference
       if (!S.profile.additionalContext) S.profile.additionalContext = '';
       const fileList = attachments.map(f => f.name).join(', ');
@@ -832,7 +832,7 @@ export default async function handler(req, res) {
     // ══════════════════════════════════════════════════
 
     if (choice === 'generate_report' || choice === 'update_and_generate') {
-      const depth = calculateDiagnosticDepth(S.profile);
+      const depth = calculateDiagnosticDepth(S.profile, S.currentPhase);
       return res.status(200).json({
         step_id: 'GENERATE', message: 'Generating...', mode: 'buttons', options: [],
         allow_text: false, session_data: S, current_phase: 'finish',
@@ -967,10 +967,10 @@ ${S.resolvedStage ? formatBenchmarksForPrompt(S.resolvedStage) : '(Stage not yet
 
 ═══ WEBSITE SCAN DATA ═══
 ${S.scrapedSummary
-  ? S.scrapedSummary
-  : (S.resolvedStage === 'pre_seed_idea'
-    ? '(Pre-seed stage — no website available. Focus on idea validation and customer discovery.)'
-    : '(No website data — base discovery on conversation only)')}
+        ? S.scrapedSummary
+        : (S.resolvedStage === 'pre_seed_idea'
+          ? '(Pre-seed stage — no website available. Focus on idea validation and customer discovery.)'
+          : '(No website data — base discovery on conversation only)')}
 ${attachmentContext}
 
 ═══ CURRENT STATE ═══
@@ -998,6 +998,16 @@ ${choice !== 'SNAPSHOT_INIT' ? `═══ USER'S LATEST MESSAGE ═══\n"${ch
   "options": [
     {"key": "short_key", "label": "Button text (max 60 chars)"}
   ],
+  "option_groups": [
+    {
+      "question_ref": "Short reference to the first question (max 40 chars)",
+      "options": [{"key": "a1", "label": "Answer option for Q1"}]
+    },
+    {
+      "question_ref": "Short reference to the second question (max 40 chars)",
+      "options": [{"key": "b1", "label": "Answer option for Q2"}]
+    }
+  ],
   "profile_updates": {
     "fieldName": "value you extracted from the user's latest message"
   },
@@ -1007,6 +1017,12 @@ ${choice !== 'SNAPSHOT_INIT' ? `═══ USER'S LATEST MESSAGE ═══\n"${ch
     "diagnosis_validated": false
   }
 }
+
+IMPORTANT about option_groups:
+- When you ask 2 questions in the same message, you MUST use "option_groups" to provide separate button sets for each question.
+- Each group has a "question_ref" (a short label like "Revenue target" or "Team headcount") and its own "options" array.
+- When using option_groups, the top-level "options" array should only contain special buttons (generate_report, add_context, etc.) or be empty.
+- When you ask only 1 question, use the flat "options" array as normal and omit "option_groups".
 
 ═══ RESPONSE RULES ═══
 - Maximum 2 questions per turn. Never ask 3+.
@@ -1100,16 +1116,25 @@ ${choice !== 'SNAPSHOT_INIT' ? `═══ USER'S LATEST MESSAGE ═══\n"${ch
     const hasGen = options.some(o => o.key === 'generate_report');
     const mode = (isFinish && hasGen) ? 'buttons' : 'mixed';
 
-    const depthScore = calculateDiagnosticDepth(S.profile);
+    const depthScore = calculateDiagnosticDepth(S.profile, S.currentPhase);
     console.log(`[v12] T${S.totalTurns} phase:${S.currentPhase} pt:${S.phaseTurns} stage:${S.resolvedStage || '?'} opts:${options.length} depth:${depthScore}%`);
 
     // Build assumptions for the frontend "What I know" panel
     const assumptions = buildAssumptionSummary(S.profile);
 
+    // Pass option_groups from LLM if present
+    const optionGroups = Array.isArray(llm.option_groups) && llm.option_groups.length > 0
+      ? llm.option_groups.map(g => ({
+        question_ref: (g.question_ref || '').slice(0, 80),
+        options: sanitizeOptions(g.options, S)
+      }))
+      : null;
+
     return res.status(200).json({
       step_id: S.currentPhase,
       message: aiMsg,
       mode, options,
+      option_groups: optionGroups,
       allow_text: mode !== 'buttons',
       session_data: S,
       current_phase: PHASES[S.currentPhase]?.display || S.currentPhase,
@@ -1174,38 +1199,44 @@ function buildFallback(S) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// DIAGNOSTIC DEPTH — weighted scoring based on field importance, not question count
+// DIAGNOSTIC DEPTH — phase-aware scoring that stays in sync with phase dots
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function calculateDiagnosticDepth(profile) {
-  // Weighted fields — not all questions are equal
-  const weights = {
-    // Identity (required): 30 points total
-    companyName: 5, industry: 8, stage: 8, teamSize: 5, revenue: 4,
-    // GTM (high value): 25 points total
-    mainBottleneck: 10, salesMotion: 8, icpTitle: 7,
-    // Metrics (high value): 25 points total
-    churnRate: 8, avgDealSize: 7, winRate: 5, cac: 5,
-    // Operating model: 10 points total
-    whoCloses: 5, crm: 3, tools: 2,
-    // Context: 10 points total
-    diagnosedProblems: 5, userPriority: 5,
-  };
+// Each phase gets a slice of 0-100%. Progress within a phase is based on
+// checklist field completion, so the percentage always matches the active dot.
+const PHASE_RANGES = {
+  welcome: { min: 0, max: 5 },
+  company: { min: 5, max: 30 },
+  gtm: { min: 30, max: 55 },
+  sales: { min: 55, max: 80 },
+  diagnosis: { min: 80, max: 95 },
+  pre_finish: { min: 95, max: 100 },
+};
 
-  let score = 0;
-  let max = 0;
-  for (const [field, weight] of Object.entries(weights)) {
-    max += weight;
-    const val = profile[field];
-    if (val && typeof val === 'string' && val.trim().length > 0) score += weight;
-    if (Array.isArray(val) && val.length > 0) score += weight;
+function calculateDiagnosticDepth(profile, currentPhase) {
+  const range = PHASE_RANGES[currentPhase] || PHASE_RANGES.welcome;
+  const phase = PHASES[currentPhase];
+
+  // If the phase has no checklist, return the min of the range
+  if (!phase || !phase.checklist || phase.checklist.length === 0) {
+    return range.min;
   }
 
-  return Math.round((score / max) * 100);
+  // Calculate completion within this phase's checklist
+  let filled = 0;
+  for (const k of phase.checklist) {
+    const v = profile[k];
+    const has = Array.isArray(v) ? v.length > 0 : (v && typeof v === 'string' && v.trim() !== '');
+    if (has) filled++;
+  }
+
+  const phaseProgress = filled / phase.checklist.length; // 0..1
+  const pct = Math.round(range.min + phaseProgress * (range.max - range.min));
+  return Math.min(pct, range.max);
 }
 
 // Backward-compatible wrapper used in responses
 function calcConf(S) {
-  const depth = calculateDiagnosticDepth(S.profile);
+  const depth = calculateDiagnosticDepth(S.profile, S.currentPhase);
   return { total: depth };
 }
