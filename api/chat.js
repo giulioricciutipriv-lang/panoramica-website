@@ -1033,7 +1033,7 @@ Every message you write MUST follow this structure:
 2. **Topic header**: bold label (e.g. **Revenue Model**) for the NEXT topic
 3. **Context line**: one sentence explaining WHY you need this and how it feeds the diagnostic
 4. **One question**: exactly ONE clear question
-5. **Buttons**: 3-5 options matching your question
+5. **Buttons**: minimum 3 options, maximum 5. ALWAYS include one open-ended escape option as the LAST button (e.g. "Other — let me explain", "Altro — spiego io", "None of these") so the user is never forced into choices that don't fit. Never present only 2 binary options.
 Every word must add value. If a sentence only restates what the user said, DELETE it.
 
 ═══ LANGUAGE ═══
@@ -1123,7 +1123,7 @@ When the user answers, they often reveal MULTIPLE data points in a single respon
 ═══ RULES ═══
 1. READ THE TRANSCRIPT AND CROSS-PHASE MEMORY. Never re-ask something already discussed or collected.
 2. Acknowledgment: max 1 short line — a benchmark reaction or "Noted." NEVER rephrase the user's words. NEVER summarize their situation back to them.
-3. Generate 3-5 buttons that match YOUR single question — not generic options.
+3. Generate 3-5 buttons matching YOUR single question. The LAST option must ALWAYS be an open-ended escape (e.g. "Other — let me explain"). Never present only 2 binary options.
 4. profile_updates: extract ALL facts from the user's latest message, not just the one you asked about. Fields: ${Object.keys(S.profile).join(', ')}
 5. For arrays (diagnosedProblems, rootCauses): provide ["item1", "item2"]
 6. phase_signals: only set to true when the event ACTUALLY happened this turn.
@@ -1249,7 +1249,18 @@ function sanitizeOptions(raw, S) {
   const valid = raw.filter(o => o && typeof o.key === 'string' && typeof o.label === 'string' && o.key.length > 0 && o.label.length > 0)
     .map(o => ({ key: o.key.slice(0, 80), label: o.label.slice(0, 120) }))
     .slice(0, 6);
-  return valid.length >= 2 ? valid : getDefaults(S);
+  if (valid.length < 2) return getDefaults(S);
+
+  // Auto-append an "Other" escape option when only 2 non-special options exist,
+  // so the user is never forced into a binary choice
+  const specialKeys = ['generate_report', 'update_and_generate', 'restart', 'download_again', 'open_dashboard', 'add_context'];
+  const nonSpecial = valid.filter(o => !specialKeys.includes(o.key));
+  const hasEscape = nonSpecial.some(o => /\b(other|altro|none|neither|spiego|explain|diverso|my own)\b/i.test(o.label));
+  if (nonSpecial.length >= 2 && nonSpecial.length <= 2 && !hasEscape) {
+    valid.push({ key: 'other_explain', label: 'Other — let me explain' });
+  }
+
+  return valid;
 }
 
 function getDefaults(S) {
