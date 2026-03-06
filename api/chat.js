@@ -136,18 +136,19 @@ const PHASES = {
   },
   company: {
     display: 'company', next: 'gtm', minTurns: 4,
-    checklist: ['businessModel', 'stage', 'revenue', 'teamSize', 'funding'],
+    checklist: ['industry', 'growthTarget', 'businessModel', 'stage', 'revenue', 'teamSize', 'funding'],
     depthTopics: [
+      'Industry/sector: exact vertical, sub-segment, and market size estimate',
+      'Primary business objective: the ONE measurable goal for the next 6-12 months (revenue target, customer count, funding round)',
       'Current revenue number and month-over-month growth rate — exact figures',
       'Team size and how many are in revenue-generating vs support roles — headcount split',
       'Burn rate and runway — months of cash remaining at current spend',
       'Revenue model and pricing: ACV, number of tiers, conversion rate from free to paid',
       'Customer count: total active, paying, churned in last 90 days',
       'Competitive landscape: how many direct competitors, win rate against them',
-      'Current tool stack: what they spend monthly on SaaS tools, what is manual vs automated',
-      'Roadmap: what is the measurable 6-month target (revenue, customers, headcount)'
+      'Current tool stack: what they spend monthly on SaaS tools, what is manual vs automated'
     ],
-    description: 'Deep-dive into company DNA: situation, people, model, revenue, team, funding, systems, roadmap.'
+    description: 'Deep-dive into company DNA: industry, primary objective, model, revenue, team, funding, systems.'
   },
   gtm: {
     display: 'gtm', next: 'sales', minTurns: 4,
@@ -325,6 +326,7 @@ function buildProfileContext(session) {
 
   if (missing.length > 0) {
     const labels = {
+      industry: 'Industry/Sector', growthTarget: 'Primary Business Objective',
       businessModel: 'Business Model', stage: 'Stage', revenue: 'Revenue',
       teamSize: 'Team Size', funding: 'Funding', icpTitle: 'ICP/Buyer',
       salesMotion: 'Sales Motion', channels: 'Channels', avgDealSize: 'Deal Size',
@@ -614,22 +616,39 @@ function buildAssumptionSummary(profile) {
 }
 
 function getNextQuestionContext(profile, conversationLength) {
-  // Don't ask about metrics until we know basic identity
-  const hasIdentity = profile.companyName && profile.industry && profile.stage;
+  // PRIORITY GATE: industry and primary objective MUST come first
+  const hasIndustry = profile.industry && profile.industry.trim();
+  const hasObjective = profile.growthTarget && profile.growthTarget.trim();
+  const hasIdentity = profile.companyName && hasIndustry && profile.stage && hasObjective;
   const hasGTM = profile.salesMotion || profile.channels;
 
+  // Gate 1: Industry + objective are non-negotiable first
+  if (!hasIndustry && conversationLength > 0) {
+    return {
+      phase: 'identity',
+      maxQuestions: 1,
+      instruction: 'INDUSTRY IS MISSING. This is the #1 priority. Ask: "In che settore operi?" / "What industry/sector are you in?". Do NOT ask about anything else until industry is established.'
+    };
+  }
+  if (hasIndustry && !hasObjective && conversationLength > 0) {
+    return {
+      phase: 'identity',
+      maxQuestions: 1,
+      instruction: 'PRIMARY OBJECTIVE IS MISSING. This is the #2 priority. Ask: "Qual è il tuo obiettivo principale nei prossimi 6-12 mesi?" / "What is your #1 business goal for the next 6-12 months?". Do NOT proceed to metrics until this is clear.'
+    };
+  }
   if (!hasIdentity && conversationLength > 0) {
     return {
       phase: 'identity',
       maxQuestions: 1,
-      instruction: 'Focus ONLY on company identity (company name, industry, stage). Do not ask about metrics or GTM yet.'
+      instruction: 'Focus on completing company identity (company name, industry, stage, primary objective). Do not ask about metrics or GTM yet.'
     };
   }
   if (hasIdentity && !hasGTM) {
     return {
       phase: 'gtm',
       maxQuestions: 1,
-      instruction: 'Identity is confirmed. Focus on sales motion and channels. Do not jump to detailed metrics yet.'
+      instruction: 'Identity is confirmed (industry: ' + profile.industry + ', objective: ' + profile.growthTarget + '). Focus on sales motion and channels. Do not jump to detailed metrics yet.'
     };
   }
   if (hasGTM) {
@@ -665,10 +684,12 @@ function getPhasePrompt(S) {
 
 YOUR TASK:
 - Reference 3-4 SPECIFIC things from their website data (headlines, pricing, features, CTAs — quote them)
-- Make 3 bold assumptions about: (a) their revenue model, (b) their target customer, (c) their growth stage
-- Ask them to validate: "Ho capito bene? Cosa devo correggere?" / "Did I get this right?"
-- Generate confirmation buttons
+- Make 3 bold assumptions about: (a) their INDUSTRY/SECTOR, (b) their revenue model, (c) their target customer
+- Try to EXTRACT the industry from the website data and set profile_updates.industry
+- Ask them to validate: "Ho capito bene? Cosa devo correggere? E qual è il tuo obiettivo principale nei prossimi 6-12 mesi?" / "Did I get this right? And what's your primary goal for the next 6-12 months?"
+- Generate confirmation buttons that include industry-related options
 
+CRITICAL: Industry and primary objective are the FIRST things you need to establish. They shape the entire diagnostic.
 AFTER this turn, set phase_signals.welcome_done=true in your next response (when the user replies).
 This is your first impression — make it count. Show you did your homework.`;
       }
@@ -682,11 +703,11 @@ ${hasWebsiteOrDesc ? 'The user provided a business description but no website.' 
 YOUR TASK:
 ${hasWebsiteOrDesc ? '- Reference what they described about their business' : '- Introduce yourself warmly and explain the diagnostic process'}
 - Acknowledge their stage: "${stagePlaybook?.label || 'Your stage'}" — and what that means for the diagnostic
-- Ask the FIRST stage-appropriate question to kick off discovery:
-  ${stageQuestions.map((q, i) => `${i + 1}. "${q}"`).join('\n  ')}
-- Pick the most natural opening question from the list above
-- Generate relevant buttons
+- Your FIRST question must establish: in che settore operi / what industry are you in? This is the #1 priority.
+- If the description already reveals the industry, extract it (set profile_updates.industry) and instead ask: qual è il tuo obiettivo principale nei prossimi 6-12 mesi? / What is your primary business goal for the next 6-12 months?
+- Generate relevant buttons (include industry-specific options if possible)
 
+PRIORITY ORDER for first questions: 1) Industry/sector 2) Primary objective 3) Everything else.
 AFTER this turn, set phase_signals.welcome_done=true in your next response (when the user replies).
 Make this warm and stage-appropriate. Pre-seed founders need encouragement, not interrogation.`;
     }
@@ -704,21 +725,28 @@ ${stageQuestions.map((q, i) => `  ${i + 1}. ${q}`).join('\n')}
 DEPTH TOPICS (choose ONE per turn):
 ${phase.depthTopics.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}
 
-CHECKLIST:
+CHECKLIST (in PRIORITY ORDER — follow this sequence):
 ${phase.checklist.map(k => {
         const v = p[k]; const has = v && v.trim();
         return has ? `  ✅ ${k}: ${v} (DONE)` : `  ❓ ${k}: NOT YET COLLECTED`;
       }).join('\n')}
 
+═══ PRIORITY RULE ═══
+The checklist is ORDERED. You MUST collect items FROM TOP TO BOTTOM.
+- ❓ industry: FIRST. Without it, the entire diagnostic is blind. Ask immediately.
+- ❓ growthTarget: SECOND. The primary objective shapes every recommendation.
+- Then businessModel, stage, revenue, teamSize, funding in order.
+Do NOT skip ahead to revenue or teamSize if industry and growthTarget are still missing.
+
 THIS TURN — SINGLE-TOPIC INSTRUCTIONS:
-1. Look at the CHECKLIST above. Pick the SINGLE most important ❓ item that has not been collected yet.
-2. Write a bold **Topic Header** for that item (e.g. **Business Model**, **Revenue**, **Team Size**).
+1. Look at the CHECKLIST above. Pick the FIRST ❓ item from the TOP (priority order).
+2. Write a bold **Topic Header** for that item (e.g. **Industry**, **Primary Objective**, **Revenue**).
 3. Write ONE sentence of context: explain WHY you need this NUMBER and how it feeds the diagnostic.
-4. Ask exactly ONE question — and it MUST demand a concrete answer: a number, a percentage, a currency amount, or a measurable fact. Not "tell me about your revenue" → "What's your current MRR in €?". Not "how is your team structured" → "How many people, and how many are in revenue-generating roles?".
+4. Ask exactly ONE question — and it MUST demand a concrete answer: a number, a percentage, a currency amount, or a measurable fact. For industry: "In che settore operi esattamente?" / "What specific industry/vertical are you in?". For growthTarget: "Qual è il tuo obiettivo #1 misurabile nei prossimi 6-12 mesi?" / "What is your #1 measurable goal for the next 6-12 months?".
 5. If the user shared a number in their last message, briefly acknowledge it with a benchmark comparison before your question.
 6. If the user already described a problem qualitatively, do NOT ask them to elaborate. Instead, ask them to QUANTIFY it: "How often does this happen?", "How many customers are affected?", "What's the €/month impact?".
 7. When the user shares their stage, SET profile_updates.companyStage to one of: "pre_seed_idea", "seed_startup", "early_scale", "expansion_enterprise"
-8. Extract data into the matching profile fields, including: currentSituation, orgStructure, decisionMaking, keyDependencies, teamMorale, systemsLandscape, roadmap, plannedChanges
+8. Extract data into the matching profile fields, including: industry, growthTarget, currentSituation, orgStructure, decisionMaking, keyDependencies, teamMorale, systemsLandscape, roadmap, plannedChanges
 
 DO NOT ask about two topics. ONE topic, ONE question per message. Once a topic is answered, MOVE ON — never circle back.`;
 
@@ -942,6 +970,7 @@ export default async function handler(req, res) {
       if (contextData) {
         S.profile.website = contextData.website || '';
         if (contextData.description) S.profile.productDescription = contextData.description;
+        if (contextData.industry) S.profile.industry = contextData.industry;
 
         const [web, li] = await Promise.all([
           contextData.website ? scrapeWebsite(contextData.website) : null,

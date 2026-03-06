@@ -1007,6 +1007,12 @@
               class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none placeholder:text-gray-600 transition-colors">
           </div>
           <div>
+            <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Industry / Sector
+              <span class="text-p-lime text-[10px] ml-1">IMPORTANT</span></label>
+            <input type="text" id="f-industry" placeholder="e.g. B2B SaaS, FinTech, HealthTech, E-commerce..."
+              class="w-full bg-p-panel border border-p-bdr rounded-xl px-4 py-3.5 text-white text-sm focus:border-p-lime focus:outline-none placeholder:text-gray-600 transition-colors">
+          </div>
+          <div>
             <label class="block text-xs font-medium text-p-greyL uppercase tracking-wider mb-2">Business Description
               <span class="text-p-lime text-[10px] ml-1">IMPORTANT</span></label>
             <textarea id="f-desc" rows="2" placeholder="What you sell, who you sell to, how you make money..."
@@ -2333,7 +2339,8 @@
       loading(hasWebsite ? 'SCANNING WEBSITE...' : 'PREPARING...');
       $('st').textContent = 'SCANNING';
 
-      diag = { website: w, description: d, linkedin: l, stage: s };
+      const ind = $('f-industry').value.trim();
+      diag = { website: w, description: d, linkedin: l, stage: s, industry: ind };
 
       try {
         const data = await api({
@@ -2377,7 +2384,8 @@
     function buildConfirmationScreen(profile) {
       const criticalParams = [
         { label: 'Company', value: profile.companyName, field: 'companyName', editable: true },
-        { label: 'Industry', value: profile.industry, field: 'industry', editable: true },
+        { label: 'Industry', value: profile.industry, field: 'industry', editable: false },
+        { label: 'Primary Goal', value: profile.growthTarget || profile.userPriority, field: 'growthTarget', editable: false },
         { label: 'Stage', value: profile.companyStage || profile.stage, field: 'stage', editable: true },
         {
           label: 'Team Size', value: profile.teamSize, field: 'teamSize', editable: true,
@@ -2388,7 +2396,7 @@
           requiresExact: /range|approx|about|~/i.test((profile.revenue || ''))
         },
         { label: 'Main Bottleneck', value: profile.mainBottleneck, field: 'mainBottleneck', editable: true },
-        { label: 'Primary Goal', value: profile.userPriority, field: 'userPriority', editable: true },
+        { label: 'User Priority', value: profile.userPriority, field: 'userPriority', editable: true },
       ];
       const needsClarification = criticalParams.filter(p => p.requiresExact);
       return { params: criticalParams, needsClarification };
