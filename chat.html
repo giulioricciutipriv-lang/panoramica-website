@@ -1821,6 +1821,9 @@
         const track = document.createElement('div');
         track.className = 'og-track';
 
+        // Track partial answers across groups
+        const ogAnswers = [];
+
         // Build slides (one per question group)
         optionGroups.forEach((group, gi) => {
           const slide = document.createElement('div');
@@ -1852,23 +1855,24 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
               </svg>`;
 
-            // On click: if NOT the last group, slide to next group first
             b.onclick = () => {
+              // Save this group's answer
+              ogAnswers[gi] = { key: o.key, label: o.label, ref: group.question_ref || 'Q' + (gi + 1) };
+
               if (gi < totalGroups - 1) {
-                // Mark current dot as done, advance carousel
+                // Not the last group — slide to next
                 const dots = carousel.parentElement.querySelectorAll('.og-dot');
                 if (dots[gi]) { dots[gi].classList.remove('active'); dots[gi].classList.add('done'); }
                 if (dots[gi + 1]) dots[gi + 1].classList.add('active');
                 track.style.transform = `translateX(-${(gi + 1) * 100}%)`;
-                // Recalculate body max-height after slide
                 setTimeout(() => {
                   if (body.classList.contains('open')) body.style.maxHeight = body.scrollHeight + 'px';
                 }, 400);
-                // Cache this partial answer but don't send yet
-                cacheAnswer(H.length, o.key, o.label);
               } else {
-                // Last group — send the answer
-                pick(o.key, o.label);
+                // Last group — combine ALL answers and send
+                const combinedKey = ogAnswers.map(a => a.label).join(' | ');
+                const combinedLabel = ogAnswers.map(a => a.label).join(' | ');
+                pick(combinedKey, combinedLabel);
               }
             };
             groupBtns.appendChild(b);
