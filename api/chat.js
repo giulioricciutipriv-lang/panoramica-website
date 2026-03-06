@@ -338,6 +338,95 @@ function buildProfileContext(session) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// COLLECTED SUMMARY — semantic topic groups with values for cross-phase memory
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function buildCollectedSummary(profile) {
+  const p = profile;
+  const groups = [
+    {
+      topic: 'COMPANY IDENTITY',
+      fields: [
+        ['Company Name', p.companyName], ['Website', p.website], ['Industry', p.industry],
+        ['Business Model', p.businessModel], ['Stage', p.stage || p.companyStage],
+        ['Product', p.productDescription], ['Pricing', `${p.pricingModel || ''} ${p.pricingRange || ''}`.trim()],
+        ['Competitive Landscape', p.competitiveLandscape], ['Differentiator', p.differentiator]
+      ]
+    },
+    {
+      topic: 'FINANCIALS',
+      fields: [
+        ['Revenue', p.revenue], ['Revenue Growth', p.revenueGrowth],
+        ['Funding', p.funding], ['Runway', p.runway],
+        ['Budget Level', p.budgetLevel], ['Growth Target', p.growthTarget]
+      ]
+    },
+    {
+      topic: 'PEOPLE & TEAM',
+      fields: [
+        ['Team Size', p.teamSize], ['Team Roles', p.teamRoles],
+        ['Org Structure', p.orgStructure], ['Decision Making', p.decisionMaking],
+        ['Key Dependencies', p.keyDependencies], ['Team Morale/Culture', p.teamMorale],
+        ['Founder Role in Sales', p.founderInvolvement], ['Who Closes Deals', p.whoCloses],
+        ['Team Enablement', p.teamEnablement]
+      ]
+    },
+    {
+      topic: 'SITUATION & OPERATIONS',
+      fields: [
+        ['Current Situation', p.currentSituation], ['Systems/Tools', p.systemsLandscape],
+        ['CRM', p.crm], ['Tools', p.tools], ['Automation Level', p.automationLevel],
+        ['Roadmap', p.roadmap], ['Planned Changes', p.plannedChanges]
+      ]
+    },
+    {
+      topic: 'GO-TO-MARKET',
+      fields: [
+        ['ICP/Buyer', p.icpTitle], ['ICP Company Size', p.icpCompanySize],
+        ['ICP Industry', p.icpIndustry], ['ICP Pain Points', p.icpPainPoints],
+        ['ICP Decision Process', p.icpDecisionProcess], ['ICP Budget', p.icpBudget],
+        ['Sales Motion', p.salesMotion], ['Channels', p.channels],
+        ['Best Channel', p.bestChannel], ['Channel ROI', p.channelROI],
+        ['Deal Size', p.avgDealSize], ['Sales Cycle', p.salesCycle],
+        ['Content Strategy', p.contentStrategy], ['Lead Gen', p.leadGenMethod],
+        ['CAC', p.cac], ['LTV', p.ltv]
+      ]
+    },
+    {
+      topic: 'SALES ENGINE',
+      fields: [
+        ['Sales Process', p.salesProcess], ['Process Stages', p.processStages],
+        ['Process Documented', p.processDocumented],
+        ['Win Rate', p.winRate], ['Lost Deal Reasons', p.lostDealReasons],
+        ['Main Objections', p.mainObjections],
+        ['Main Bottleneck', p.mainBottleneck], ['Secondary Bottleneck', p.secondaryBottleneck]
+      ]
+    },
+    {
+      topic: 'RETENTION & EXPANSION',
+      fields: [
+        ['Churn Rate', p.churnRate], ['Churn Reasons', p.churnReasons],
+        ['Expansion Revenue', p.expansionRevenue], ['NRR', p.nrr],
+        ['Onboarding', p.onboardingProcess], ['Customer Success', p.customerSuccess]
+      ]
+    }
+  ];
+
+  const result = [];
+  for (const g of groups) {
+    const filled = g.fields.filter(([, v]) => {
+      if (Array.isArray(v)) return v.length > 0;
+      return v && typeof v === 'string' && v.trim() !== '';
+    });
+    if (filled.length > 0) {
+      result.push(`📋 ${g.topic}: ${filled.map(([label, val]) => `${label} = ${val}`).join(' | ')}`);
+    }
+  }
+
+  return result.length > 0 ? result.join('\n') : '(nothing collected yet)';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // PHASE LOGIC
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -973,9 +1062,14 @@ Phase: ${S.currentPhase} | Phase turn: ${S.phaseTurns} | Total turns: ${S.totalT
 ═══ YOUR INSTRUCTIONS ═══
 ${phasePrompt}
 
-═══ ALREADY COLLECTED FIELDS (DO NOT re-ask these) ═══
-${S.askedFields.length > 0 ? S.askedFields.join(', ') : '(none yet)'}
-Before asking a question, check this list. If the data point is here, SKIP it entirely.
+═══ CROSS-PHASE MEMORY — EVERYTHING ALREADY COLLECTED (DO NOT re-ask ANY of this) ═══
+${buildCollectedSummary(S.profile)}
+
+BEFORE asking ANY question, scan the memory above. If the information is already there — even partially — DO NOT ask about it again. This applies across ALL phases, not just the current one. For example:
+- If Team Size is known from the Company phase, NEVER ask about team size again in GTM or Sales.
+- If Who Closes Deals was answered, do not ask "who handles sales" in a different way.
+- If Channels were discussed, do not ask "how do customers find you" — it's the same data.
+Violating this rule creates a terrible user experience.
 ${sequencingDirective}
 ${(S.totalTurns > 0 && S.totalTurns % 4 === 0 && S.currentPhase !== 'welcome' && S.currentPhase !== 'pre_finish') ? `
 ═══ ASSUMPTION VERIFICATION CHECK (every ~4 turns) ═══
@@ -1011,11 +1105,24 @@ ${choice !== 'SNAPSHOT_INIT' ? `═══ USER'S LATEST MESSAGE ═══\n"${ch
 - If the user gives a vague answer, make a reasonable assumption, STATE it, and move on.
 - Do NOT use option_groups. Always use the flat "options" array.
 
+═══ ZERO-DUPLICATION RULE ═══
+Before writing your question, perform this mental check:
+1. Is this data point ALREADY in the CROSS-PHASE MEMORY above? → SKIP IT.
+2. Did the user ALREADY mention this in the transcript? → SKIP IT.
+3. Is this semantically the SAME question asked in a different way? → SKIP IT.
+If all checklist items for the current phase are filled and there is nothing new to ask, signal readiness to advance.
+
+═══ AGGRESSIVE EXTRACTION RULE ═══
+When the user answers, they often reveal MULTIPLE data points in a single response. Extract ALL of them into profile_updates — not just the one you asked about. For example:
+- If you asked about revenue and they say "We do €30K MRR with a team of 5, mostly inbound sales" → extract revenue, teamSize, AND salesMotion.
+- If they mention roles ("I close all deals myself, my co-founder does product") → extract whoCloses, founderInvolvement, teamRoles, orgStructure.
+- Always scan the full answer for: team size, revenue, funding, channels, tools, roles, process details.
+
 ═══ RULES ═══
-1. READ THE TRANSCRIPT. Never re-ask something already discussed.
+1. READ THE TRANSCRIPT AND CROSS-PHASE MEMORY. Never re-ask something already discussed or collected — even if it was collected in a different phase.
 2. Briefly acknowledge the user's answer before moving on: "You said [X] — that tells me [Y]."
 3. Generate 3-5 buttons that match YOUR single question — not generic options.
-4. profile_updates: extract facts from the user's latest message. Fields: ${Object.keys(S.profile).join(', ')}
+4. profile_updates: extract ALL facts from the user's latest message, not just the one you asked about. Fields: ${Object.keys(S.profile).join(', ')}
 5. For arrays (diagnosedProblems, rootCauses): provide ["item1", "item2"]
 6. phase_signals: only set to true when the event ACTUALLY happened this turn.
 7. Never invent data. Only reference ✅ confirmed data or scraped website data.
