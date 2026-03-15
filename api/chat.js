@@ -209,6 +209,14 @@ function createSession() {
     transcript: [],
     // Resolved stage key — drives playbook selection (set after company phase)
     resolvedStage: null,
+    // Buyer psychology profiling — running scores updated each turn
+    buyerProfile: {
+      scores: { operator: 0, visionary: 0, pragmatist: 0, validator: 0 },
+      primary: null,      // 'operator' | 'visionary' | 'pragmatist' | 'validator'
+      secondary: null,
+      confidence: 0,      // 0-100
+      signals: []
+    },
     // Structured profile — what we've confirmed
     profile: {
       companyName: '', website: '', industry: '', businessModel: '', stage: '',
@@ -427,6 +435,106 @@ function buildCollectedSummary(profile) {
   }
 
   return result.length > 0 ? result.join('\n') : '(nothing collected yet)';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BUYER PSYCHOLOGY PROFILING — running classification updated each turn
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const BUYER_KW = {
+  operator: [
+    'data', 'metrics', 'measure', 'track', 'percentage', 'ratio', 'formula',
+    'unit economics', 'benchmark', 'kpi', 'dashboard', 'analytics', 'spreadsheet',
+    'roi', 'model', 'calculate', 'quantify', 'numbers', 'process', 'documented',
+    'systematic', 'framework', 'methodology', 'structured', 'audit', 'funnel',
+    'dati', 'metriche', 'misurare', 'percentuale', 'calcolare', 'processo',
+    'documentato', 'strutturato', 'numeri', 'modello'
+  ],
+  visionary: [
+    'vision', 'strategy', 'transform', 'disrupt', 'market', 'opportunity',
+    'potential', 'scale', 'long-term', 'big picture', 'narrative', 'story',
+    'imagine', 'future', 'industry', 'revolution', 'category', 'position',
+    'brand', 'ecosystem', 'platform', 'moat', 'flywheel',
+    'visione', 'strategia', 'trasformare', 'opportunità', 'potenziale',
+    'lungo termine', 'futuro', 'settore', 'ecosistema', 'mercato'
+  ],
+  pragmatist: [
+    'quick', 'fast', 'now', 'immediately', 'this week', 'tomorrow', 'asap',
+    'just', 'simple', 'shortcut', 'hack', 'skip', 'prioritize', 'focus',
+    'action', 'execute', 'ship', 'launch', 'move', 'next step',
+    'practical', 'concrete', 'specific', 'bottom line',
+    'subito', 'veloce', 'adesso', 'questa settimana', 'domani', 'semplice',
+    'pratico', 'concreto', 'specifico', 'azione', 'priorità', 'focus'
+  ],
+  validator: [
+    'others', 'competitors', 'industry standard', 'best practice', 'benchmark',
+    'careful', 'safe', 'proven', 'validate', 'consensus', 'align',
+    'stakeholder', 'board', 'investors', 'comparable', 'case study',
+    'evidence', 'track record', 'similar companies', 'what do you see',
+    'altri', 'concorrenti', 'standard', 'rischio', 'sicuro', 'validare',
+    'consenso', 'investitori', 'aziende simili', 'cosa vedete', 'provato'
+  ]
+};
+
+function updateBuyerProfile(session) {
+  const userMessages = session.transcript.filter(t => t.role === 'user').map(t => t.text || '');
+  const allText = userMessages.join(' ').toLowerCase();
+  const wordCount = allText.split(/\s+/).filter(Boolean).length;
+  const signals = [];
+
+  let scores = { operator: 0, visionary: 0, pragmatist: 0, validator: 0 };
+
+  // Response length
+  if (userMessages.length > 0) {
+    const avgLen = userMessages.reduce((s, m) => s + m.split(/\s+/).filter(Boolean).length, 0) / userMessages.length;
+    if (avgLen < 15) { scores.pragmatist += 15; signals.push('short responses'); }
+    else if (avgLen > 40) { scores.operator += 10; scores.validator += 5; signals.push('detailed responses'); }
+  }
+
+  // Numerical density
+  if (wordCount > 0) {
+    const nums = (allText.match(/\d+[%€$kKmM]?|\b\d+[.,]\d+/g) || []).length;
+    const density = nums / wordCount;
+    if (density > 0.08) { scores.operator += 20; signals.push('high number density'); }
+    else if (density > 0.04) { scores.operator += 8; scores.pragmatist += 5; }
+    else if (wordCount > 50) { scores.visionary += 10; }
+  }
+
+  // Keyword matching
+  for (const [prof, keywords] of Object.entries(BUYER_KW)) {
+    let hits = 0;
+    for (const kw of keywords) {
+      const regex = new RegExp('\\b' + kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'gi');
+      const matches = allText.match(regex);
+      if (matches) hits += matches.length;
+    }
+    scores[prof] += hits * 3;
+  }
+
+  // Time horizon
+  const shortPhrases = ['this week', 'this month', 'right now', 'immediately', 'next week', 'questa settimana', 'subito'];
+  const longPhrases = ['this year', 'next year', '12 months', 'long term', '3 years', 'quest\'anno', 'lungo termine'];
+  const shortHits = shortPhrases.reduce((c, p) => c + (allText.includes(p) ? 1 : 0), 0);
+  const longHits = longPhrases.reduce((c, p) => c + (allText.includes(p) ? 1 : 0), 0);
+  if (shortHits > longHits && shortHits >= 1) { scores.pragmatist += 10; signals.push('short time horizon'); }
+  else if (longHits > shortHits && longHits >= 1) { scores.visionary += 8; scores.operator += 3; signals.push('long time horizon'); }
+
+  // Risk language
+  const aversePhrases = ['careful', 'risk', 'safe', 'conservative', 'worried', 'cautious', 'attento', 'rischio', 'sicuro'];
+  const tolerantPhrases = ['move fast', 'aggressive', 'bold', 'experiment', 'fail fast', 'veloce', 'aggressivo', 'sperimentare'];
+  const av = aversePhrases.reduce((c, w) => c + (allText.includes(w) ? 1 : 0), 0);
+  const tol = tolerantPhrases.reduce((c, w) => c + (allText.includes(w) ? 1 : 0), 0);
+  if (av > tol && av >= 2) { scores.validator += 12; signals.push('risk-averse'); }
+  else if (tol > av && tol >= 1) { scores.pragmatist += 6; scores.visionary += 4; signals.push('risk-tolerant'); }
+
+  // Resolve
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  const primary = sorted[0][0];
+  const secondary = sorted[1][0];
+  const total = sorted.reduce((s, [, v]) => s + v, 0);
+  const confidence = total > 0 ? Math.round(((sorted[0][1] - sorted[1][1]) / total) * 100) : 0;
+
+  return { scores, primary, secondary, confidence, signals };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1212,6 +1320,13 @@ When the user answers, they often reveal MULTIPLE data points in a single respon
       if (llm.phase_signals.welcome_done === true) S.welcomeDone = true;
       if (llm.phase_signals.diagnosis_presented === true) S.diagnosisPresented = true;
       if (llm.phase_signals.diagnosis_validated === true) S.diagnosisValidated = true;
+    }
+
+    // ══════════════════════════════════════════════════
+    // BUYER PSYCHOLOGY — update running classification
+    // ══════════════════════════════════════════════════
+    if (S.transcript.filter(t => t.role === 'user').length >= 2) {
+      S.buyerProfile = updateBuyerProfile(S);
     }
 
     // ══════════════════════════════════════════════════

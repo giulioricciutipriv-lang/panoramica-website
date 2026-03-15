@@ -1,0 +1,665 @@
+{
+  "meta": {
+    "version": "1.0",
+    "count": 18,
+    "sources": [
+      "Anonymized consulting engagement patterns (2019-2025)",
+      "Pavilion / Revenue Collective community case studies",
+      "SaaStr Annual session data and founder interviews",
+      "OpenView Partners portfolio growth patterns",
+      "Synthesized composites from recurring B2B SaaS failure/success modes"
+    ],
+    "lastUpdated": "2025-12",
+    "note": "All archetypes are anonymized composites. No single archetype represents a specific company."
+  },
+
+  "archetypes": [
+    {
+      "id": "A01",
+      "name": "The Founder Bottleneck",
+      "profile": {
+        "stages": ["seed_startup", "early_scale"],
+        "teamSize": { "min": 2, "max": 8 },
+        "mrrRange": { "min": 5000, "max": 30000 },
+        "gtmMotion": ["founder-led", "outbound"],
+        "verticals": ["b2b_services", "b2b_saas", "consulting"],
+        "salesMotion": ["founder-led"]
+      },
+      "constraintPattern": {
+        "primary": "founder_dependency",
+        "secondary": "capacity_ceiling",
+        "tertiary": "no_sales_process",
+        "description": "Founder closes 80%+ of deals, no documented sales process, team can't sell without founder in the room"
+      },
+      "intervention": {
+        "sequence": [
+          "Documented founder's implicit sales playbook (week 1-2)",
+          "Hired first AE with founder shadowing period (week 3-6)",
+          "Built basic objection-handling library from recorded calls (week 4-8)",
+          "Transitioned founder to strategic/enterprise only (week 8-12)"
+        ],
+        "keyAction": "Recording and transcribing every founder sales call for 2 weeks to extract the implicit playbook"
+      },
+      "outcome": {
+        "days90": "AE closing 40% of pipeline independently. Founder time on sales dropped from 70% to 25%.",
+        "months6": "MRR grew 85% (from ~€15k to ~€28k). Second AE hired. Founder focused on product and partnerships.",
+        "keyMetric": "founder_time_on_sales",
+        "metricBefore": "70%",
+        "metricAfter": "25%"
+      },
+      "keyLesson": "Most founders resist documenting their sales process because they believe it's intuitive. The breakthrough comes from recording, not interviewing — founders don't know what they do differently until they hear themselves do it."
+    },
+
+    {
+      "id": "A02",
+      "name": "The Leaky Bucket",
+      "profile": {
+        "stages": ["seed_startup", "early_scale"],
+        "teamSize": { "min": 5, "max": 25 },
+        "mrrRange": { "min": 20000, "max": 100000 },
+        "gtmMotion": ["inbound", "outbound", "mixed"],
+        "verticals": ["b2b_saas", "martech", "fintech"],
+        "salesMotion": ["sales-led", "hybrid"]
+      },
+      "constraintPattern": {
+        "primary": "high_churn",
+        "secondary": "acquisition_over_retention",
+        "tertiary": "weak_onboarding",
+        "description": "Monthly churn >6%, aggressive acquisition spending but no retention infrastructure, onboarding is a PDF and a welcome email"
+      },
+      "intervention": {
+        "sequence": [
+          "Exit interview blitz — called every churned customer from last 6 months (week 1-2)",
+          "Rebuilt onboarding into 14-day guided activation sequence (week 2-5)",
+          "Introduced health score model with 3 leading indicators (week 4-7)",
+          "Shifted 30% of acquisition budget to customer success (week 6-12)"
+        ],
+        "keyAction": "The exit interview blitz revealed that 60% of churn happened before day 30 — an onboarding problem disguised as a product problem"
+      },
+      "outcome": {
+        "days90": "Monthly churn dropped from 7.2% to 3.8%. Saved ~€7k/mo in retained revenue.",
+        "months6": "Churn stabilized at 2.5%. NRR improved from 85% to 105%. CAC payback dropped from 18 to 11 months.",
+        "keyMetric": "monthly_churn",
+        "metricBefore": "7.2%",
+        "metricAfter": "2.5%"
+      },
+      "keyLesson": "Companies with high churn instinctively try to out-acquire the problem. The counterintuitive move is to freeze acquisition spending and redirect it to retention — the math always favors saving a customer over acquiring a new one at 5x the cost."
+    },
+
+    {
+      "id": "A03",
+      "name": "The Premature Scaler",
+      "profile": {
+        "stages": ["seed_startup"],
+        "teamSize": { "min": 8, "max": 20 },
+        "mrrRange": { "min": 10000, "max": 50000 },
+        "gtmMotion": ["outbound", "mixed"],
+        "verticals": ["b2b_saas", "hr_tech", "edtech"],
+        "salesMotion": ["sales-led"]
+      },
+      "constraintPattern": {
+        "primary": "scaling_before_pmf",
+        "secondary": "high_cac",
+        "tertiary": "low_win_rate",
+        "description": "Hired 3+ salespeople before proving repeatable sales motion, CAC is 3x stage median, win rate <15%, pipeline is large but conversion is terrible"
+      },
+      "intervention": {
+        "sequence": [
+          "Paused all outbound hiring, reduced team to top 2 performers (week 1-2)",
+          "Founder re-entered sales to revalidate ICP and messaging (week 1-4)",
+          "Ran 30-day ICP tightening sprint — analyzed all won deals for pattern (week 2-6)",
+          "Rebuilt sales playbook around narrow ICP before re-scaling (week 6-12)"
+        ],
+        "keyAction": "Shrinking the team was emotionally painful but freed cash to survive the ICP pivot. The top 2 AEs outperformed the original team of 5."
+      },
+      "outcome": {
+        "days90": "Win rate improved from 12% to 28%. CAC dropped 55%. Pipeline shrank 40% but revenue stayed flat.",
+        "months6": "MRR doubled. Hired 2 new AEs with proven playbook. CAC payback dropped from 22 to 9 months.",
+        "keyMetric": "win_rate",
+        "metricBefore": "12%",
+        "metricAfter": "28%"
+      },
+      "keyLesson": "A shrinking pipeline with a rising win rate is a sign of health, not decline. Most seed-stage companies over-index on pipeline volume when they should be optimizing for pipeline quality. Fewer, better opportunities always beat more, worse ones."
+    },
+
+    {
+      "id": "A04",
+      "name": "The Invisible Funnel",
+      "profile": {
+        "stages": ["seed_startup", "early_scale"],
+        "teamSize": { "min": 3, "max": 15 },
+        "mrrRange": { "min": 8000, "max": 60000 },
+        "gtmMotion": ["inbound", "content-led"],
+        "verticals": ["b2b_saas", "devtools", "analytics"],
+        "salesMotion": ["product-led", "hybrid"]
+      },
+      "constraintPattern": {
+        "primary": "no_pipeline_visibility",
+        "secondary": "no_crm_discipline",
+        "tertiary": "anecdotal_forecasting",
+        "description": "No CRM or CRM is a graveyard, founder 'knows' the pipeline in their head, can't answer how many deals are in each stage, forecasting is gut-feel"
+      },
+      "intervention": {
+        "sequence": [
+          "Implemented lightweight CRM with 4 pipeline stages (week 1-2)",
+          "Backfilled current pipeline from founder's memory + email (week 2-3)",
+          "Established weekly 15-min pipeline review ritual (week 3-4)",
+          "Built simple dashboard: deals by stage, velocity, and aging (week 4-8)"
+        ],
+        "keyAction": "The backfill exercise revealed 8 'dead' deals the founder still counted as pipeline — removing them gave an honest baseline"
+      },
+      "outcome": {
+        "days90": "Pipeline coverage went from 'unknown' to 3.2x. Identified 3 stuck deals worth €45k collectively. Closed 2 of them.",
+        "months6": "Forecast accuracy reached 70% (from ~30% gut-feel). Sales cycle shortened 20% due to proactive deal management.",
+        "keyMetric": "forecast_accuracy",
+        "metricBefore": "~30%",
+        "metricAfter": "70%"
+      },
+      "keyLesson": "Pipeline visibility isn't about the tool — it's about the ritual. A spreadsheet reviewed weekly beats Salesforce ignored daily. The 15-minute weekly review is the single highest-ROI habit a seed-stage founder can adopt."
+    },
+
+    {
+      "id": "A05",
+      "name": "The Pricing Paralysis",
+      "profile": {
+        "stages": ["seed_startup", "early_scale"],
+        "teamSize": { "min": 3, "max": 20 },
+        "mrrRange": { "min": 10000, "max": 80000 },
+        "gtmMotion": ["inbound", "outbound", "mixed"],
+        "verticals": ["b2b_saas", "vertical_saas", "martech"],
+        "salesMotion": ["sales-led", "hybrid"]
+      },
+      "constraintPattern": {
+        "primary": "underpricing",
+        "secondary": "no_value_metric",
+        "tertiary": "flat_deal_size",
+        "description": "ACV hasn't changed in 18+ months, pricing is based on competitor benchmarking not value delivered, no expansion revenue path, all customers pay roughly the same"
+      },
+      "intervention": {
+        "sequence": [
+          "Willingness-to-pay survey to top 20 customers (week 1-3)",
+          "Identified value metric and restructured pricing tiers (week 3-6)",
+          "Tested new pricing on new deals only — kept existing customers on old plan (week 6-10)",
+          "Introduced annual plans with 15% discount to improve cash flow (week 8-12)"
+        ],
+        "keyAction": "The willingness-to-pay survey showed 65% of customers would have paid 40-60% more — the founder had been anchoring to competitor pricing instead of value delivered"
+      },
+      "outcome": {
+        "days90": "Average new deal size increased 45%. First expansion deal closed at 2x original ACV.",
+        "months6": "ARPA up 60%. NRR improved from 95% to 115% via natural tier upgrades. No increase in churn from repricing.",
+        "keyMetric": "avg_deal_size",
+        "metricBefore": "€4,200",
+        "metricAfter": "€6,700"
+      },
+      "keyLesson": "Founders systematically underprice by 30-50% because they fear churn from price increases. In practice, well-communicated value-based repricing almost never increases churn — and the customers who leave on price were never your ICP."
+    },
+
+    {
+      "id": "A06",
+      "name": "The Channel Scatter",
+      "profile": {
+        "stages": ["seed_startup", "early_scale"],
+        "teamSize": { "min": 5, "max": 30 },
+        "mrrRange": { "min": 15000, "max": 80000 },
+        "gtmMotion": ["mixed", "outbound", "inbound"],
+        "verticals": ["b2b_saas", "martech", "sales_tech"],
+        "salesMotion": ["sales-led", "hybrid"]
+      },
+      "constraintPattern": {
+        "primary": "too_many_channels",
+        "secondary": "no_channel_attribution",
+        "tertiary": "diluted_resources",
+        "description": "Running 5+ channels simultaneously with no clear winner, can't attribute revenue to source, marketing budget spread thin across channels, no channel has reached escape velocity"
+      },
+      "intervention": {
+        "sequence": [
+          "Attribution audit — mapped last 20 closed-won deals to original source (week 1-3)",
+          "Identified top 2 channels by actual closed-won attribution (week 3-4)",
+          "Killed underperforming channels, doubled down on top 2 (week 4-6)",
+          "Built measurement framework to track channel-level CAC and payback (week 6-12)"
+        ],
+        "keyAction": "The attribution audit showed 70% of revenue came from just 2 of the 6 active channels — the other 4 were consuming 50% of the budget"
+      },
+      "outcome": {
+        "days90": "Marketing-sourced pipeline increased 35% while budget decreased 20%. CAC dropped 40%.",
+        "months6": "Primary channel reached 3x original volume. Second channel generated first partner referrals. Overall CAC payback dropped from 16 to 10 months.",
+        "keyMetric": "cac",
+        "metricBefore": "€12,000",
+        "metricAfter": "€7,200"
+      },
+      "keyLesson": "Seed-stage companies should own 1-2 channels, not rent 6. The temptation to 'test everything' leads to data poverty on every channel. You need 30+ data points per channel to draw conclusions — most seed companies don't have enough pipeline to feed 3+."
+    },
+
+    {
+      "id": "A07",
+      "name": "The Product-Led Plateau",
+      "profile": {
+        "stages": ["seed_startup", "early_scale"],
+        "teamSize": { "min": 5, "max": 30 },
+        "mrrRange": { "min": 20000, "max": 100000 },
+        "gtmMotion": ["product-led", "plg"],
+        "verticals": ["b2b_saas", "devtools", "collaboration", "analytics"],
+        "salesMotion": ["product-led", "self-serve"]
+      },
+      "constraintPattern": {
+        "primary": "plg_conversion_gap",
+        "secondary": "no_sales_assist",
+        "tertiary": "usage_data_blindness",
+        "description": "Strong free/trial signups but <3% conversion to paid, no sales-assist layer, product usage data exists but isn't used for outreach, enterprise prospects self-serve and get stuck"
+      },
+      "intervention": {
+        "sequence": [
+          "Built PQL scoring model from usage data — 5 activation signals (week 1-4)",
+          "Added sales-assist layer: AE reaches out when PQL score triggers (week 4-6)",
+          "Introduced reverse trial — full features for 14 days then downgrade (week 6-8)",
+          "Built enterprise-specific onboarding path with white-glove option (week 8-12)"
+        ],
+        "keyAction": "The PQL model revealed that users who completed 3 specific actions in the first 7 days converted at 8x the rate — this became the activation checklist"
+      },
+      "outcome": {
+        "days90": "Trial-to-paid conversion improved from 2.8% to 6.5%. First enterprise deal closed via sales-assist at 4x average ACV.",
+        "months6": "Hybrid PLG+sales motion established. Enterprise segment contributing 35% of new MRR. Overall conversion at 7.2%.",
+        "keyMetric": "trial_conversion",
+        "metricBefore": "2.8%",
+        "metricAfter": "7.2%"
+      },
+      "keyLesson": "Pure PLG hits a ceiling around €50-80k MRR unless you add a sales-assist layer. The mistake is treating PLG and sales-led as opposites — the winners use product data to tell sales exactly when and who to call."
+    },
+
+    {
+      "id": "A08",
+      "name": "The Delivery Trap",
+      "profile": {
+        "stages": ["pre_seed_idea", "seed_startup"],
+        "teamSize": { "min": 1, "max": 5 },
+        "mrrRange": { "min": 3000, "max": 15000 },
+        "gtmMotion": ["founder-led", "referral"],
+        "verticals": ["b2b_services", "consulting", "agency"],
+        "salesMotion": ["founder-led"]
+      },
+      "constraintPattern": {
+        "primary": "delivery_over_sales",
+        "secondary": "capacity_ceiling",
+        "tertiary": "founder_as_product",
+        "description": "Founder spends 80%+ time on delivery, no time for sales, revenue is capped by founder's billable hours, every client needs the founder personally"
+      },
+      "intervention": {
+        "sequence": [
+          "Productized the most common 70% of delivery into a repeatable framework (week 1-4)",
+          "Hired a junior delivery person to handle productized work (week 4-6)",
+          "Founder shifted to sales 3 days/week, delivery oversight 2 days/week (week 6-8)",
+          "Introduced group delivery model — serve 3 clients with shared sessions (week 8-12)"
+        ],
+        "keyAction": "Productizing delivery meant accepting that 70% of client work was actually the same across clients — the founder's belief that 'every client is unique' was the bottleneck"
+      },
+      "outcome": {
+        "days90": "Client capacity increased from 3 to 7 without quality drop. Founder selling 3 days/week generated 4 new qualified opportunities.",
+        "months6": "MRR grew from €8k to €22k. Founder down to 1 day/week delivery. Hired second delivery person.",
+        "keyMetric": "client_capacity",
+        "metricBefore": "3 clients",
+        "metricAfter": "7 clients"
+      },
+      "keyLesson": "Service founders build a job, not a business, until they separate delivery from their personal time. The breakthrough is accepting that 80% standardized delivery is better for the client AND the business than 100% bespoke work."
+    },
+
+    {
+      "id": "A09",
+      "name": "The Enterprise Misfit",
+      "profile": {
+        "stages": ["seed_startup", "early_scale"],
+        "teamSize": { "min": 5, "max": 25 },
+        "mrrRange": { "min": 15000, "max": 80000 },
+        "gtmMotion": ["outbound", "enterprise"],
+        "verticals": ["b2b_saas", "vertical_saas", "fintech", "compliance"],
+        "salesMotion": ["sales-led"]
+      },
+      "constraintPattern": {
+        "primary": "long_sales_cycle",
+        "secondary": "icp_too_broad",
+        "tertiary": "cash_flow_mismatch",
+        "description": "Sales cycles >90 days, targeting enterprise buyers with seed-stage resources, cash burn is front-loaded but revenue is delayed, pipeline looks big but nothing closes"
+      },
+      "intervention": {
+        "sequence": [
+          "Segmented pipeline: created a mid-market tier with shorter cycle (week 1-3)",
+          "Built 'quick win' package — limited scope, faster deployment, proof of concept (week 3-6)",
+          "Introduced land-and-expand model: start small, grow inside account (week 6-8)",
+          "Shifted 50% of outbound effort to mid-market while nurturing enterprise long-term (week 8-12)"
+        ],
+        "keyAction": "Creating a 'starter' package at 30% of enterprise ACV shortened the cycle from 90+ days to 25 days — then 40% of starters expanded to full within 6 months"
+      },
+      "outcome": {
+        "days90": "Average sales cycle dropped from 95 to 35 days for new segment. Pipeline coverage went from 1.5x to 4x.",
+        "months6": "Mid-market contributing 55% of new MRR. First 3 enterprise expansions closed. Cash flow positive for first time.",
+        "keyMetric": "sales_cycle",
+        "metricBefore": "95 days",
+        "metricAfter": "35 days"
+      },
+      "keyLesson": "Selling enterprise at seed stage is like fighting gravity — the unit economics only work if you can land small and expand. The companies that succeed go mid-market first to build references, then use those references to open enterprise doors."
+    },
+
+    {
+      "id": "A10",
+      "name": "The Solo AE Ceiling",
+      "profile": {
+        "stages": ["seed_startup"],
+        "teamSize": { "min": 3, "max": 12 },
+        "mrrRange": { "min": 15000, "max": 50000 },
+        "gtmMotion": ["outbound", "mixed"],
+        "verticals": ["b2b_saas", "hr_tech", "sales_tech", "martech"],
+        "salesMotion": ["sales-led"]
+      },
+      "constraintPattern": {
+        "primary": "single_ae_dependency",
+        "secondary": "no_pipeline_generation",
+        "tertiary": "ae_doing_prospecting",
+        "description": "One AE doing everything — prospecting, qualifying, closing, onboarding. Pipeline generation dies when AE is in closing cycles. Feast-famine revenue pattern."
+      },
+      "intervention": {
+        "sequence": [
+          "Split AE's time: mornings for prospecting blocks, afternoons for pipeline (week 1-2)",
+          "Built automated outbound sequences to generate baseline pipeline (week 2-5)",
+          "Hired part-time SDR to take over top-of-funnel qualification (week 5-8)",
+          "Established weekly pipeline generation targets separate from quota (week 8-12)"
+        ],
+        "keyAction": "Separating prospecting from closing as distinct scheduled activities (not ad hoc) broke the feast-famine cycle within 3 weeks"
+      },
+      "outcome": {
+        "days90": "Pipeline generation became consistent at 12+ qualified opps/month (was 4-15 swing). AE close rate improved 30% due to focus.",
+        "months6": "SDR ramped to full-time. Total pipeline 3x initial. Hired second AE. Revenue predictability enabled first annual plan.",
+        "keyMetric": "pipeline_consistency",
+        "metricBefore": "4-15 opps/month (feast-famine)",
+        "metricAfter": "12+ consistent opps/month"
+      },
+      "keyLesson": "The most expensive mistake at seed stage isn't hiring wrong — it's asking your AE to prospect and close simultaneously. These require different mental states and compete for calendar space. Even a part-time SDR (or automated sequences) breaks the cycle."
+    },
+
+    {
+      "id": "A11",
+      "name": "The Metrics Desert",
+      "profile": {
+        "stages": ["seed_startup", "early_scale"],
+        "teamSize": { "min": 5, "max": 30 },
+        "mrrRange": { "min": 20000, "max": 120000 },
+        "gtmMotion": ["inbound", "outbound", "mixed"],
+        "verticals": ["b2b_saas", "vertical_saas", "fintech"],
+        "salesMotion": ["sales-led", "hybrid"]
+      },
+      "constraintPattern": {
+        "primary": "no_unit_economics",
+        "secondary": "scaling_blind",
+        "tertiary": "board_misalignment",
+        "description": "Can't answer basic unit economics questions — CAC, LTV, payback, magic number. Scaling decisions made on revenue growth alone. Board sees topline but not efficiency."
+      },
+      "intervention": {
+        "sequence": [
+          "Built SaaS metrics dashboard with 8 core metrics from existing data (week 1-3)",
+          "Retroactively calculated CAC, LTV, payback from last 12 months (week 2-4)",
+          "Established monthly metrics review cadence with leadership (week 4-6)",
+          "Used metrics to kill 2 unprofitable customer segments (week 6-12)"
+        ],
+        "keyAction": "The retroactive CAC analysis showed one channel had 28-month payback while another had 8-month — they were spending equally on both"
+      },
+      "outcome": {
+        "days90": "Full SaaS metrics dashboard live. Killed unprofitable segment saving €6k/mo. Reallocated budget to high-LTV segments.",
+        "months6": "Blended CAC payback improved from 17 to 10 months. Board confidence increased — approved Series A fundraise at higher valuation.",
+        "keyMetric": "cac_payback",
+        "metricBefore": "17 months",
+        "metricAfter": "10 months"
+      },
+      "keyLesson": "Revenue growth without unit economics visibility is running in the dark. Most early-scale companies discover they have 2-3 customer segments blended together — and at least one is destroying margin. The dashboard doesn't just track; it reveals which growth is healthy and which is toxic."
+    },
+
+    {
+      "id": "A12",
+      "name": "The Outbound Grind",
+      "profile": {
+        "stages": ["seed_startup"],
+        "teamSize": { "min": 2, "max": 10 },
+        "mrrRange": { "min": 5000, "max": 30000 },
+        "gtmMotion": ["outbound"],
+        "verticals": ["b2b_saas", "consulting", "agency", "sales_tech"],
+        "salesMotion": ["founder-led", "sales-led"]
+      },
+      "constraintPattern": {
+        "primary": "outbound_only_dependency",
+        "secondary": "no_inbound_engine",
+        "tertiary": "linear_growth_model",
+        "description": "100% dependent on outbound, no content or inbound flywheel, growth is linear to effort — every deal requires fresh prospecting, no compounding mechanics"
+      },
+      "intervention": {
+        "sequence": [
+          "Launched weekly content from sales insights — turned objections into articles (week 1-4)",
+          "Built referral system with structured ask at customer success milestones (week 3-6)",
+          "Created partner program with 2 complementary non-competing tools (week 6-10)",
+          "Established LinkedIn founder-brand posting cadence — 3x/week from sales learnings (week 2-12)"
+        ],
+        "keyAction": "Turning sales objections into content was zero-cost and solved two problems — inbound pipeline AND better sales enablement. Each objection article became a nurture asset."
+      },
+      "outcome": {
+        "days90": "Inbound leads went from 0 to 15% of pipeline. First 2 partner referrals closed. LinkedIn presence generating 3-5 warm DMs/week.",
+        "months6": "Inbound at 35% of pipeline. Partner channel at 10%. Outbound still dominant but team has 3 revenue sources instead of 1.",
+        "keyMetric": "pipeline_diversification",
+        "metricBefore": "100% outbound",
+        "metricAfter": "55% outbound / 35% inbound / 10% partner"
+      },
+      "keyLesson": "Pure outbound is a treadmill — you run faster every month for the same result. The escape is not abandoning outbound but building compounding channels alongside it. Founder-brand content is the highest-ROI seed-stage inbound investment because it costs nothing but time."
+    },
+
+    {
+      "id": "A13",
+      "name": "The Config Chaos",
+      "profile": {
+        "stages": ["early_scale", "expansion_enterprise"],
+        "teamSize": { "min": 15, "max": 60 },
+        "mrrRange": { "min": 50000, "max": 300000 },
+        "gtmMotion": ["mixed", "inbound", "outbound"],
+        "verticals": ["b2b_saas", "vertical_saas", "fintech", "hr_tech"],
+        "salesMotion": ["sales-led"]
+      },
+      "constraintPattern": {
+        "primary": "tool_sprawl",
+        "secondary": "no_data_integration",
+        "tertiary": "manual_processes",
+        "description": "10+ disconnected tools, no single source of truth, data lives in silos, team spends hours on manual reporting, CRM is unreliable because nobody updates it"
+      },
+      "intervention": {
+        "sequence": [
+          "Tool audit — mapped every tool to owner, cost, and actual usage (week 1-2)",
+          "Eliminated 4 redundant tools, saved €3.2k/mo (week 2-4)",
+          "Built core integration: CRM ↔ marketing automation ↔ CS platform (week 4-8)",
+          "Automated 3 key reports that previously took 5+ hours/week manual effort (week 8-12)"
+        ],
+        "keyAction": "The tool audit revealed 3 teams maintaining separate spreadsheets that tracked the same data — unifying into CRM saved 12 hours/week across the team"
+      },
+      "outcome": {
+        "days90": "Eliminated €3.2k/mo in redundant tools. Saved 15 hours/week in manual reporting. CRM adoption went from 40% to 85%.",
+        "months6": "Single source of truth established. Forecasting accuracy improved from 55% to 80%. RevOps function created to maintain systems.",
+        "keyMetric": "crm_adoption",
+        "metricBefore": "40%",
+        "metricAfter": "85%"
+      },
+      "keyLesson": "Tool sprawl is a symptom, not a cause. The root problem is that each team solved their workflow gap independently. RevOps as a function doesn't exist to manage tools — it exists to design workflows that span teams. Start with the workflow, then choose the tool."
+    },
+
+    {
+      "id": "A14",
+      "name": "The Expansion Blind Spot",
+      "profile": {
+        "stages": ["early_scale", "expansion_enterprise"],
+        "teamSize": { "min": 15, "max": 80 },
+        "mrrRange": { "min": 80000, "max": 500000 },
+        "gtmMotion": ["sales-led", "mixed"],
+        "verticals": ["b2b_saas", "vertical_saas", "enterprise"],
+        "salesMotion": ["sales-led"]
+      },
+      "constraintPattern": {
+        "primary": "no_expansion_motion",
+        "secondary": "acquisition_only_growth",
+        "tertiary": "csm_as_support",
+        "description": "NRR below 100%, CS team is reactive (support tickets) not proactive (growth), no expansion playbook, upsell is accidental, no QBR process"
+      },
+      "intervention": {
+        "sequence": [
+          "Built customer health score from 5 signals — usage, NPS, support tickets, engagement, payment (week 1-3)",
+          "Trained CS team on expansion selling — QBR template with growth conversation (week 3-6)",
+          "Introduced quarterly business reviews for top 20% of accounts by ACV (week 6-8)",
+          "Created expansion triggers — automated alerts when usage crosses tier thresholds (week 8-12)"
+        ],
+        "keyAction": "The first round of QBRs with top accounts revealed 4 accounts actively evaluating competitors — early save interventions retained €35k MRR"
+      },
+      "outcome": {
+        "days90": "NRR improved from 92% to 103%. 3 expansion deals closed from QBR conversations. Saved 4 at-risk accounts worth €35k MRR.",
+        "months6": "NRR at 112%. CS-sourced expansion revenue became 20% of new MRR. Top-quartile accounts growing 15% annually via natural expansion.",
+        "keyMetric": "nrr",
+        "metricBefore": "92%",
+        "metricAfter": "112%"
+      },
+      "keyLesson": "The cheapest revenue is expansion revenue — CAC is nearly zero because you've already earned trust. Yet most early-scale companies treat CSMs as support agents instead of growth agents. Shifting one QBR-trained CSM to proactive expansion typically generates more revenue than an additional AE."
+    },
+
+    {
+      "id": "A15",
+      "name": "The ICP Fog",
+      "profile": {
+        "stages": ["pre_seed_idea", "seed_startup"],
+        "teamSize": { "min": 1, "max": 8 },
+        "mrrRange": { "min": 0, "max": 20000 },
+        "gtmMotion": ["founder-led", "outbound", "inbound"],
+        "verticals": ["b2b_saas", "b2b_services", "martech", "devtools"],
+        "salesMotion": ["founder-led"]
+      },
+      "constraintPattern": {
+        "primary": "undefined_icp",
+        "secondary": "sell_to_anyone",
+        "tertiary": "scattered_messaging",
+        "description": "No clear ICP definition, selling to anyone who will listen, messaging changes per prospect, can't articulate who the ideal customer is in one sentence"
+      },
+      "intervention": {
+        "sequence": [
+          "Analyzed best 5 customers: who paid fastest, churned least, referred most (week 1-2)",
+          "Built ICP profile from pattern: industry, size, pain point, trigger event (week 2-3)",
+          "Rewrote all messaging for ONE buyer persona (week 3-5)",
+          "Said no to 3 out-of-ICP inbound leads as discipline test (week 5-8)"
+        ],
+        "keyAction": "Saying no to paying customers who didn't fit ICP was the hardest decision — but it freed capacity for 2 ideal-fit customers who became case studies and referral sources"
+      },
+      "outcome": {
+        "days90": "Win rate improved from 8% to 22% on ICP-match prospects. Sales cycle shortened 35%. First customer referral from ideal-fit account.",
+        "months6": "80% of pipeline is ICP-match. Average deal size up 50% because messaging resonates with right buyers. First 3 inbound leads from referrals.",
+        "keyMetric": "win_rate",
+        "metricBefore": "8%",
+        "metricAfter": "22%"
+      },
+      "keyLesson": "ICP isn't a marketing exercise — it's a resource allocation decision. At seed stage, every hour spent on an out-of-ICP prospect is an hour stolen from an ideal-fit one. The companies that grow fastest are the ones willing to say no to revenue that doesn't compound."
+    },
+
+    {
+      "id": "A16",
+      "name": "The Segmentation Gap",
+      "profile": {
+        "stages": ["early_scale", "expansion_enterprise"],
+        "teamSize": { "min": 20, "max": 100 },
+        "mrrRange": { "min": 100000, "max": 500000 },
+        "gtmMotion": ["mixed", "outbound"],
+        "verticals": ["b2b_saas", "fintech", "vertical_saas"],
+        "salesMotion": ["sales-led"]
+      },
+      "constraintPattern": {
+        "primary": "single_gtm_motion",
+        "secondary": "segment_blind",
+        "tertiary": "one_size_pricing",
+        "description": "Same sales process for €5k and €50k deals, no segmentation by company size or use case, pricing is flat, SMB and enterprise prospects get same treatment, AEs complain about deal quality"
+      },
+      "intervention": {
+        "sequence": [
+          "Segmented existing customer base into 3 tiers by ACV (week 1-2)",
+          "Designed distinct sales motions: self-serve (SMB), mid-touch (MM), high-touch (ENT) (week 2-6)",
+          "Built segment-specific pricing and packaging (week 6-8)",
+          "Assigned AEs to segments based on selling style and track record (week 8-12)"
+        ],
+        "keyAction": "Analyzing existing customers revealed the top 15% by ACV contributed 55% of revenue but received the same service as the bottom 15% — rebalancing attention immediately improved retention in the top tier"
+      },
+      "outcome": {
+        "days90": "Enterprise segment ACV increased 30%. SMB self-serve reduced AE time by 60%. Overall win rate improved 15%.",
+        "months6": "Three distinct motions running. Enterprise NRR at 125%. Total MRR grew 40% with same headcount.",
+        "keyMetric": "revenue_per_ae",
+        "metricBefore": "€450k ARR/AE",
+        "metricAfter": "€680k ARR/AE"
+      },
+      "keyLesson": "When your AEs say 'deal quality is inconsistent,' they're telling you that you have a segmentation problem, not a pipeline problem. One GTM motion works until ~€100k MRR — after that, treating all customers the same penalizes your best accounts and over-invests in your worst."
+    },
+
+    {
+      "id": "A17",
+      "name": "The Hiring Ahead Trap",
+      "profile": {
+        "stages": ["seed_startup", "early_scale"],
+        "teamSize": { "min": 10, "max": 40 },
+        "mrrRange": { "min": 30000, "max": 150000 },
+        "gtmMotion": ["mixed", "outbound"],
+        "verticals": ["b2b_saas", "fintech", "hr_tech", "edtech"],
+        "salesMotion": ["sales-led"]
+      },
+      "constraintPattern": {
+        "primary": "burn_rate_mismatch",
+        "secondary": "premature_team_expansion",
+        "tertiary": "quota_attainment_crisis",
+        "description": "Hired 4+ salespeople but average quota attainment is <60%, burn rate accelerated but revenue didn't follow, management overhead increased, pipeline per rep is thin"
+      },
+      "intervention": {
+        "sequence": [
+          "Measured quota attainment and pipeline per rep honestly (week 1-2)",
+          "Identified top performers and their specific winning patterns (week 2-4)",
+          "Reduced team by 30%, invested savings in enablement for remaining reps (week 4-6)",
+          "Built ramp plan: no new hires until existing reps hit 80% quota (week 6-12)"
+        ],
+        "keyAction": "Honest quota attainment measurement showed 2 of 6 reps carrying 75% of revenue — the others were pipeline tourists. Reducing the team actually improved morale and focus."
+      },
+      "outcome": {
+        "days90": "Team quota attainment went from 45% to 78%. Burn rate reduced 25%. Revenue per rep doubled.",
+        "months6": "Remaining team at 90%+ attainment. Two new hires made with proven playbook. Burn multiple improved from 3.2x to 1.4x.",
+        "keyMetric": "quota_attainment",
+        "metricBefore": "45%",
+        "metricAfter": "90%"
+      },
+      "keyLesson": "Hiring is the most expensive experiment in sales. Every unproductive AE costs ~€15k/month fully loaded. The rule: don't hire your 3rd AE until your first 2 are consistently at 80%+ quota. If they're not, the playbook is the problem, not the headcount."
+    },
+
+    {
+      "id": "A18",
+      "name": "The Post-Funding Drift",
+      "profile": {
+        "stages": ["early_scale"],
+        "teamSize": { "min": 15, "max": 50 },
+        "mrrRange": { "min": 80000, "max": 300000 },
+        "gtmMotion": ["mixed", "outbound", "inbound"],
+        "verticals": ["b2b_saas", "fintech", "martech", "vertical_saas"],
+        "salesMotion": ["sales-led"]
+      },
+      "constraintPattern": {
+        "primary": "strategic_drift",
+        "secondary": "too_many_initiatives",
+        "tertiary": "execution_fragmentation",
+        "description": "Post-fundraise, launched 5+ initiatives simultaneously, team stretched across competing priorities, no single bet is getting enough resources to succeed, weekly priorities keep shifting"
+      },
+      "intervention": {
+        "sequence": [
+          "Forced-ranked all initiatives using ICE scoring (impact, confidence, effort) (week 1-2)",
+          "Killed or paused 3 of 5 initiatives — committed to top 2 for 90 days (week 2-3)",
+          "Assigned clear ownership and weekly metrics to each surviving initiative (week 3-4)",
+          "Instituted 'no new initiatives' rule for 90 days unless CEO override (week 4-12)"
+        ],
+        "keyAction": "The CEO's willingness to publicly kill initiatives they had championed was the cultural turning point — it gave the team permission to focus"
+      },
+      "outcome": {
+        "days90": "Both surviving initiatives hit 90-day milestones. Team satisfaction and clarity scores improved 40%. Pipeline contribution from focused initiative 2.5x previous quarter.",
+        "months6": "One initiative became a core growth driver (+35% MRR). Failed initiatives reintroduced selectively with proper resourcing. Execution velocity doubled.",
+        "keyMetric": "initiative_completion_rate",
+        "metricBefore": "20% (all stalled)",
+        "metricAfter": "80% (focused two completed)"
+      },
+      "keyLesson": "Post-funding euphoria is the most dangerous period for a scaling company. More money doesn't mean more bets — it means bigger bets. The companies that deploy capital fastest are usually the ones that fail fastest. Discipline is doing fewer things with more resources, not more things with more resources."
+    }
+  ]
+}
